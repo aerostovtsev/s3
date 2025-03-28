@@ -1,37 +1,33 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import { FileManager } from "@/components/dashboard/file-manager"
+import { DashboardClient } from "@/components/dashboard/dashboard-client"
 import { prisma } from "@/lib/db"
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
+  if (!session?.user) {
     redirect("/login")
   }
 
-  // Fetch user files
-  const files = await prisma.file.findMany({
+  // Загружаем начальные файлы на сервере
+  const dbFiles = await prisma.file.findMany({
     where: {
-      userId: session.user.id,
-      isDeleted: false,
+      userId: session.user.id
     },
     orderBy: {
-      updatedAt: "desc",
+      createdAt: 'desc'
     },
+    take: 24
   })
 
-  return (
-    <div className="flex min-h-screen flex-col">
-      <DashboardHeader user={session.user} />
-      <main className="flex-1 p-6">
-        <div className="mx-auto max-w-7xl">
-          <FileManager initialFiles={files} userId={session.user.id} />
-        </div>
-      </main>
-    </div>
-  )
-}
+  // Преобразуем даты в строки
+  const files = dbFiles.map(file => ({
+    ...file,
+    createdAt: file.createdAt.toISOString(),
+    updatedAt: file.updatedAt.toISOString()
+  }))
 
+  return <DashboardClient initialFiles={files} user={session.user} />
+}

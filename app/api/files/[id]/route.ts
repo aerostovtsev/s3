@@ -1,96 +1,96 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const fileId = params.id
-    const file = await prisma.file.findUnique({
+    const { id: fileId } = await context.params
+    const { isDeleted } = await request.json()
+
+    // Проверяем, принадлежит ли файл пользователю
+    const file = await prisma.file.findFirst({
       where: {
         id: fileId,
+        userId: session.user.id,
       },
     })
 
     if (!file) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "File not found or access denied" },
+        { status: 404 }
+      )
     }
 
-    // Check if user has permission to delete the file
-    if (file.userId !== session.user.id && session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    // Soft delete in database
+    // Обновляем статус файла
     await prisma.file.update({
       where: {
         id: fileId,
       },
       data: {
-        isDeleted: true,
+        isDeleted,
       },
     })
 
-    // Don't actually delete from S3 for possible recovery
-    // This can be handled by a background job or separate endpoint
-
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting file:", error)
-    return NextResponse.json({ error: "Failed to delete file" }, { status: 500 })
+    console.error("Error updating file:", error)
+    return NextResponse.json(
+      { error: "Failed to update file" },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const fileId = params.id
-    const body = await request.json()
-    const { name } = body
+    const { id: fileId } = await context.params
 
-    if (!name || typeof name !== "string") {
-      return NextResponse.json({ error: "Invalid file name" }, { status: 400 })
-    }
-
-    const file = await prisma.file.findUnique({
+    // Проверяем, принадлежит ли файл пользователю
+    const file = await prisma.file.findFirst({
       where: {
         id: fileId,
+        userId: session.user.id,
       },
     })
 
     if (!file) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "File not found or access denied" },
+        { status: 404 }
+      )
     }
 
-    // Check if user has permission to update the file
-    if (file.userId !== session.user.id && session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-
-    const updatedFile = await prisma.file.update({
+    // Удаляем файл из базы данных
+    await prisma.file.delete({
       where: {
         id: fileId,
       },
-      data: {
-        name,
-      },
     })
 
-    return NextResponse.json(updatedFile)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error updating file:", error)
-    return NextResponse.json({ error: "Failed to update file" }, { status: 500 })
+    console.error("Error deleting file:", error)
+    return NextResponse.json(
+      { error: "Failed to delete file" },
+      { status: 500 }
+    )
   }
-}
-
+} 

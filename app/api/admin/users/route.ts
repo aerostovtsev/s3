@@ -1,54 +1,109 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 import { hash } from "bcrypt"
+import { Prisma } from "@prisma/client"
+import { createUserSchema } from "@/lib/validations/user"
 
-export async function POST(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session?.user?.role || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, email, password, role } = await request.json()
+    const searchParams = request.nextUrl.searchParams
+    const offset = parseInt(searchParams.get("offset") || "0")
+    const limit = parseInt(searchParams.get("limit") || "24")
+    const search = searchParams.get("search") || ""
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    const where: Prisma.UserWhereInput = {
+      OR: [
+        { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+      ],
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
+    const users = await prisma.user.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
       },
     })
 
-    if (existingUser) {
-      return NextResponse.json({ error: "User with this email already exists" }, { status: 409 })
+    return NextResponse.json({ users })
+  } catch (error) {
+    console.error("Error fetching users:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.role || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 10)
+    const body = await request.json()
+    
+    // Валидация данных
+    const validatedData = createUserSchema.parse(body)
+    const { name, email, role } = validatedData
 
-    // Create user
+    // Проверка существования пользователя
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Пользователь с таким email уже существует" },
+        { status: 400 }
+      )
+    }
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
-        password: hashedPassword,
-        role: role || "USER",
+        role,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
       },
     })
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user
-
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(user)
   } catch (error) {
     console.error("Error creating user:", error)
-    return NextResponse.json({ error: "Failed to create user" }, { status: 500 })
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 }
+    )
   }
 }
 

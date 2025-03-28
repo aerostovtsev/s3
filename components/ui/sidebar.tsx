@@ -162,6 +162,7 @@ const Sidebar = React.forwardRef<
     side?: "left" | "right"
     variant?: "sidebar" | "floating" | "inset"
     collapsible?: "offcanvas" | "icon" | "none"
+    isLoading?: boolean
   }
 >(
   (
@@ -171,10 +172,24 @@ const Sidebar = React.forwardRef<
       collapsible = "offcanvas",
       className,
       children,
+      isLoading = false,
       ...props
     },
     ref
   ) => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col space-y-4">
+          <div className="h-8 w-32 bg-muted rounded" />
+          <div className="flex flex-col space-y-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-10 w-full bg-muted rounded" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
     if (collapsible === "none") {
@@ -648,8 +663,22 @@ const SidebarMenuSkeleton = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     showIcon?: boolean
+    isLoading?: boolean
   }
->(({ className, showIcon = false, ...props }, ref) => {
+>(({ className, showIcon = false, isLoading = false, ...props }, ref) => {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col space-y-4">
+        <div className="h-8 w-32 bg-muted rounded" />
+        <div className="flex flex-col space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="h-10 w-full bg-muted rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Random width between 50 to 90%.
   const width = React.useMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`
@@ -663,14 +692,10 @@ const SidebarMenuSkeleton = React.forwardRef<
       {...props}
     >
       {showIcon && (
-        <Skeleton
-          className="size-4 rounded-md"
-          data-sidebar="menu-skeleton-icon"
-        />
+        <div className="h-4 w-4 bg-muted rounded" />
       )}
-      <Skeleton
+      <div
         className="h-4 flex-1 max-w-[--skeleton-width]"
-        data-sidebar="menu-skeleton-text"
         style={
           {
             "--skeleton-width": width,

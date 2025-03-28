@@ -1,12 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { File } from "@/types/file"
-import { formatFileSize } from "@/lib/utils"
+import { formatFileSize, formatDate, cn } from "@/lib/utils"
 import { getFileTypeIcon } from "@/lib/file-icons"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   Dialog,
@@ -16,43 +15,159 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Download, MoreVertical, Pencil, Trash2 } from "lucide-react"
+import { Download, MoreVertical, Trash2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
 interface FileTableProps {
-  files: File[]
-  onDelete: (fileId: string) => void
-  onRename: (fileId: string, newName: string) => void
+  files?: File[]
+  onDelete?: (fileId: string) => void
+  onBulkDelete?: () => void
+  selectedFiles: Set<string>
+  onSelectionChange: (files: Set<string>) => void
+  isLoading?: boolean
 }
 
-export function FileTable({ files, onDelete, onRename }: FileTableProps) {
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [newFileName, setNewFileName] = useState("")
+export function FileTable({ 
+  files = [], 
+  onDelete, 
+  onBulkDelete,
+  selectedFiles,
+  onSelectionChange,
+  isLoading 
+}: FileTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
 
-  const handleRename = (fileId: string) => {
-    if (newFileName.trim()) {
-      onRename(fileId, newFileName)
-      setRenamingId(null)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('tr') && !target.closest('button')) {
+        onSelectionChange(new Set())
+        setLastSelectedIndex(null)
+      }
     }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [onSelectionChange])
+
+  const handleRowClick = (fileId: string, index: number, event: React.MouseEvent) => {
+    if (event.shiftKey && lastSelectedIndex !== null) {
+      // Выделение диапазона файлов
+      const start = Math.min(lastSelectedIndex, index)
+      const end = Math.max(lastSelectedIndex, index)
+      const newSelected = new Set(selectedFiles)
+      
+      for (let i = start; i <= end; i++) {
+        newSelected.add(files[i].id)
+      }
+      
+      onSelectionChange(newSelected)
+    } else if (event.ctrlKey || event.metaKey) {
+      // Добавление/удаление одного файла
+      const newSelected = new Set(selectedFiles)
+      if (newSelected.has(fileId)) {
+        newSelected.delete(fileId)
+      } else {
+        newSelected.add(fileId)
+      }
+      onSelectionChange(newSelected)
+    } else {
+      // Одиночный выбор
+      onSelectionChange(new Set([fileId]))
+    }
+    setLastSelectedIndex(index)
   }
 
-  const startRenaming = (file: File) => {
-    setNewFileName(file.name)
-    setRenamingId(file.id)
+  const handleBulkDelete = () => {
+    if (!onBulkDelete || selectedFiles.size === 0) return
+    onBulkDelete()
   }
 
   const handleDownload = async (fileId: string) => {
-    window.open(`/api/files/${fileId}/download`, "_blank")
-  }
+    try {
+      const response = await fetch(`/api/files/download/${fileId}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get download link");
+      }
 
-  const confirmDelete = () => {
-    if (deletingId) {
-      onDelete(deletingId)
-      setDeletingId(null)
+      window.open(data.url, '_blank');
+      
+      toast({
+        title: "Success",
+        description: "Download started",
+      });
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
+      });
     }
   }
 
+  const confirmDelete = () => {
+    if (!deletingId || !onDelete) return
+    onDelete(deletingId)
+    setDeletingId(null)
+  }
+
   const fileToDelete = deletingId ? files.find((f) => f.id === deletingId) : null
+
+  if (isLoading) {
+    return (
+      <div className="w-full">
+        <div className="rounded-md border">
+          <TableHeader>
+            <TableRow>
+              <TableHead>
+                <div className="h-4 w-32 bg-muted rounded" />
+              </TableHead>
+              <TableHead>
+                <div className="h-4 w-24 bg-muted rounded" />
+              </TableHead>
+              <TableHead>
+                <div className="h-4 w-16 bg-muted rounded" />
+              </TableHead>
+              <TableHead>
+                <div className="h-4 w-20 bg-muted rounded" />
+              </TableHead>
+              <TableHead>
+                <div className="h-4 w-8 bg-muted rounded" />
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <div className="h-4 w-4 rounded-full bg-muted" />
+                    <div className="h-4 w-32 bg-muted rounded" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-24 bg-muted rounded" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-16 bg-muted rounded" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 w-20 bg-muted rounded" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-8 w-8 rounded-full bg-muted" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -60,10 +175,10 @@ export function FileTable({ files, onDelete, onRename }: FileTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Date Modified</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Имя</TableHead>
+              <TableHead>Дата создания</TableHead>
+              <TableHead>Размер</TableHead>
+              <TableHead>Тип</TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
@@ -75,64 +190,64 @@ export function FileTable({ files, onDelete, onRename }: FileTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              files.map((file) => {
+              files.map((file, index) => {
                 const FileIcon = getFileTypeIcon(file.type)
+                const isSelected = selectedFiles.has(file.id)
                 return (
-                  <TableRow key={file.id}>
+                  <TableRow 
+                    key={file.id}
+                    className={cn(
+                      "cursor-pointer select-none",
+                      isSelected && "bg-muted/50 hover:bg-muted/50",
+                      !isSelected && "hover:bg-muted/30"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation() // Предотвращаем всплытие события
+                      handleRowClick(file.id, index, e)
+                    }}
+                  >
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <FileIcon className="h-4 w-4 text-muted-foreground" />
-                        {renamingId === file.id ? (
-                          <Input
-                            value={newFileName}
-                            onChange={(e) => setNewFileName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") handleRename(file.id)
-                              if (e.key === "Escape") setRenamingId(null)
-                            }}
-                            autoFocus
-                            className="h-8"
-                          />
-                        ) : (
-                          <span>{file.name}</span>
-                        )}
+                        <span>{file.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{new Date(file.updatedAt).toLocaleString()}</TableCell>
+                    <TableCell>{formatDate(file.createdAt)}</TableCell>
                     <TableCell>{formatFileSize(file.size)}</TableCell>
                     <TableCell>{file.type}</TableCell>
                     <TableCell>
-                      {renamingId === file.id ? (
-                        <Button size="sm" onClick={() => handleRename(file.id)}>
-                          Save
-                        </Button>
-                      ) : (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleDownload(file.id)}>
-                              <Download className="mr-2 h-4 w-4" />
-                              <span>Download</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => startRenaming(file)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              <span>Rename</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeletingId(file.id)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            handleDownload(file.id)
+                          }}>
+                            <Download className="mr-2 h-4 w-4" />
+                            <span>Download</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeletingId(file.id)
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 )

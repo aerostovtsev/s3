@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import type { File } from "@/types/file";
-import { formatFileSize, formatDate } from "@/lib/utils";
+import { formatFileSize, formatDate, cn } from "@/lib/utils";
 import { getFileTypeIcon } from "@/lib/file-icons";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,97 +20,138 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Download, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Download, MoreVertical, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface FileCardProps {
-  file: File;
-  onDelete: (fileId: string) => void;
-  onRename: (fileId: string, newName: string) => void;
+  file?: File;
+  onDelete?: (fileId: string) => void;
+  isLoading?: boolean;
+  isSelected?: boolean;
+  onClick?: (event: React.MouseEvent) => void;
 }
 
-export function FileCard({ file, onDelete, onRename }: FileCardProps) {
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [newFileName, setNewFileName] = useState(file.name);
+export function FileCard({ 
+  file, 
+  onDelete, 
+  isLoading, 
+  isSelected = false,
+  onClick 
+}: FileCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const FileIcon = getFileTypeIcon(file.type);
-
-  const handleRename = () => {
-    if (newFileName.trim() && newFileName !== file.name) {
-      onRename(file.id, newFileName);
-    }
-    setIsRenaming(false);
-  };
 
   const handleDownload = async () => {
-    window.open(`/api/files/${file.id}/download`, "_blank");
+    if (!file) return;
+    try {
+      console.log("Starting download for file:", file.id);
+      const response = await fetch(`/api/files/download/${file.id}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get download link");
+      }
+
+      console.log("Received download URL:", data.url);
+      window.open(data.url, '_blank');
+      
+      toast({
+        title: "Success",
+        description: "Download started",
+      });
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
+      });
+    }
   };
 
   const confirmDelete = () => {
+    if (!file || !onDelete) return;
     onDelete(file.id);
     setShowDeleteDialog(false);
   };
 
-  return (
-    <>
+  if (isLoading) {
+    return (
       <Card className="overflow-hidden">
         <CardContent className="p-0">
-          <div className="flex items-center justify-center h-40 bg-muted">
-            <FileIcon className="h-16 w-16 text-muted-foreground" />
+          <div className="flex items-center justify-center h-24 bg-muted/50">
+            <div className="h-12 w-12 rounded bg-muted" />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col items-start p-4 space-y-2">
+        <CardFooter className="flex flex-col items-start p-3 space-y-1">
           <div className="flex w-full items-center justify-between">
-            {isRenaming ? (
-              <div className="flex-1 mr-2">
-                <Input
-                  value={newFileName}
-                  onChange={(e) => setNewFileName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRename();
-                    if (e.key === "Escape") setIsRenaming(false);
-                  }}
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <div className="flex-1 mr-2 truncate" title={file.name}>
-                {file.name}
-              </div>
-            )}
-            {isRenaming ? (
-              <Button size="sm" onClick={handleRename}>
-                Save
-              </Button>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleDownload}>
-                    <Download className="mr-2 h-4 w-4" />
-                    <span>Download</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsRenaming(true)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    <span>Rename</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setShowDeleteDialog(true)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <div className="h-4 w-3/4 bg-muted rounded" />
+            <div className="h-6 w-6 rounded-full bg-muted" />
           </div>
-          <div className="text-xs text-muted-foreground">
-            {formatFileSize(file.size)} • {formatDate(file.updatedAt)}
+          <div className="flex flex-col gap-1">
+            <div className="h-2 w-12 bg-muted rounded" />
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  if (!file) return null;
+
+  const FileIcon = getFileTypeIcon(file.type);
+
+  return (
+    <>
+      <Card 
+        className={cn(
+          "overflow-hidden cursor-pointer select-none transition-colors",
+          isSelected && "bg-muted/50 hover:bg-muted/50",
+          !isSelected && "hover:bg-muted/30"
+        )}
+        onClick={onClick}
+      >
+        <CardContent className="p-0">
+          <div className="flex items-center justify-center h-24 bg-muted/50">
+            <FileIcon className="h-12 w-12 text-muted-foreground" />
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col items-start p-3 space-y-1">
+          <div className="flex w-full items-center justify-between">
+            <span className="text-sm font-medium truncate">{file.name}</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation()
+                  handleDownload()
+                }}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowDeleteDialog(true)
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <span>{formatFileSize(file.size)}</span>
+            <span>{formatDate(file.createdAt)}</span>
           </div>
         </CardFooter>
       </Card>

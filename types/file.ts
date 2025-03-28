@@ -1,7 +1,7 @@
 export interface File {
   id: string
   name: string
-  size: number
+  size: string
   type: string
   path: string
   userId: string
@@ -12,5 +12,5 @@ export interface File {
 
 export type ViewType = "grid" | "list"
 
-export type SortOption = "newest" | "oldest" | "name-asc" | "name-desc" | "size-asc" | "size-desc"
+export type SortOption = "name" | "size" | "type" | "updatedAt"
 

@@ -9,7 +9,7 @@ export interface User {
 export interface File {
   id: string
   name: string
-  size: number
+  size: string
   type: string
   path: string
   userId: string
@@ -26,7 +26,7 @@ export interface UploadHistory {
   id: string
   fileId: string
   userId: string
-  size: number
+  size: string
   status: string
   createdAt: string
   user?: {
@@ -35,7 +35,7 @@ export interface UploadHistory {
   }
   file?: {
     name: string
-    size: number
+    size: string
   }
 }
 

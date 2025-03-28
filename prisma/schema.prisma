@@ -14,7 +14,7 @@ model User {
   id        String   @id @default(cuid())
   name      String?
   email     String   @unique
-  password  String
+  password  String?
   role      String   @default("USER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -27,7 +27,7 @@ model User {
 model File {
   id        String   @id @default(cuid())
   name      String
-  size      Int
+  size      String
   type      String
   path      String
   userId    String
@@ -44,7 +44,7 @@ model UploadHistory {
   id        String   @id @default(cuid())
   fileId    String
   userId    String
-  size      Int
+  size      String
   status    String
   createdAt DateTime @default(now())
 
@@ -61,4 +61,3 @@ model DownloadHistory {
   file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
