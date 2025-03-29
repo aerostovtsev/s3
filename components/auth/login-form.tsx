@@ -47,6 +47,14 @@ export function LoginForm() {
 
       const data = await response.json()
 
+      if (response.status === 429) {
+        // Обработка ошибки rate limiting
+        const retryAfter = response.headers.get('X-RateLimit-Reset') || data.reset || 60
+        const remaining = response.headers.get('X-RateLimit-Remaining')
+        setError(`Слишком много запросов. Пожалуйста, подождите ${retryAfter} секунд перед следующей попыткой.`)
+        return
+      }
+
       if (!response.ok) {
         throw new Error(data.error || "Ошибка отправки кода подтверждения")
       }
@@ -72,13 +80,13 @@ export function LoginForm() {
       })
 
       if (result?.error) {
-        setError("Invalid verification code. Please try again.")
+        setError("Неверный код подтверждения. Пожалуйста, попробуйте снова.")
       } else {
         router.push("/dashboard")
         router.refresh()
       }
     } catch (error) {
-      setError("An unexpected error occurred. Please try again.")
+      setError("Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова.")
     } finally {
       setLoading(false)
     }
@@ -87,8 +95,8 @@ export function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>Access your corporate file storage</CardDescription>
+        <CardTitle>Вход в систему</CardTitle>
+        <CardDescription>Доступ к корпоративному хранилищу файлов</CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
@@ -115,17 +123,17 @@ export function LoginForm() {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending code...
+                  Отправка кода...
                 </>
               ) : (
-                "Request Code"
+                "Запросить код"
               )}
             </Button>
           </form>
         ) : (
           <form onSubmit={handleSubmitCode} className="space-y-4">
             <div className="space-y-2">
-              <Label>Enter the verification code sent to your email</Label>
+              <Label>Введите код подтверждения, отправленный на ваш email</Label>
               <InputOTP
                 value={code}
                 onChange={setCode}
@@ -147,16 +155,16 @@ export function LoginForm() {
                 variant="outline"
                 onClick={() => setStep("email")}
               >
-                Back
+                Назад
               </Button>
               <Button type="submit" disabled={loading || code.length !== 6}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    Вход...
                   </>
                 ) : (
-                  "Sign In"
+                  "Вход"
                 )}
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client: S3Client = new S3Client({
@@ -12,21 +12,59 @@ const s3Client: S3Client = new S3Client({
 
 const BUCKET_NAME = process.env.YANDEX_S3_BUCKET_NAME!;
 
+// Функция для кодирования имени файла
+function encodeFileName(fileName: string): string {
+  return encodeURIComponent(fileName);
+}
+
+async function getUniqueKey(baseKey: string): Promise<string> {
+  let counter = 1;
+  let uniqueKey = baseKey;
+  
+  while (true) {
+    try {
+      // Проверяем существование файла
+      await s3Client.send(new HeadObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: uniqueKey,
+      }));
+      
+      // Если файл существует, добавляем счетчик
+      const ext = baseKey.lastIndexOf('.') > -1 ? baseKey.substring(baseKey.lastIndexOf('.')) : '';
+      const nameWithoutExt = baseKey.substring(0, baseKey.lastIndexOf('.'));
+      uniqueKey = `${nameWithoutExt}(${counter})${ext}`;
+      counter++;
+    } catch (error: any) {
+      // Если файл не существует (ошибка 404), возвращаем текущий ключ
+      if (error.name === 'NotFound') {
+        return uniqueKey;
+      }
+      throw error;
+    }
+  }
+}
+
 export async function initMultipartUpload(fileName: string, contentType: string, userId: string) {
   try {
-    const key = `uploads/${userId}/${fileName}`;
+    // Создаем базовый ключ
+    const baseKey = `uploads/${userId}/${fileName}`;
+    
+    // Получаем уникальный ключ
+    const uniqueKey = await getUniqueKey(baseKey);
+    
     console.log("Creating multipart upload with params:", {
       bucket: BUCKET_NAME,
-      key,
+      key: uniqueKey,
       contentType,
     });
 
     const command = new CreateMultipartUploadCommand({
       Bucket: BUCKET_NAME,
-      Key: key,
+      Key: uniqueKey,
       ContentType: contentType,
       Metadata: {
         'Content-Type': contentType,
+        'Original-File-Name': encodeFileName(fileName),
       },
     });
 
@@ -42,7 +80,7 @@ export async function initMultipartUpload(fileName: string, contentType: string,
       key: response.Key,
     });
 
-    return { uploadId: response.UploadId, key };
+    return { uploadId: response.UploadId, key: uniqueKey };
   } catch (error) {
     console.error("Error in initMultipartUpload:", error);
     throw error;

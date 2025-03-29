@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, Files, History } from "lucide-react"
 
 export function AdminTabs() {
   const pathname = usePathname()

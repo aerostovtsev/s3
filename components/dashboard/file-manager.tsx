@@ -8,11 +8,9 @@ import { FileUploader } from "@/components/dashboard/file-uploader"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-
 import type { ViewType, SortOption, File } from "@/types/file"
-import { Search, Grid, List, Upload, ArrowUp, ArrowDown } from "lucide-react"
+import { Search, Grid, List, Upload } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from "@/components/ui/table"
 
 interface FileManagerProps {
   initialFiles: File[]
@@ -33,7 +31,7 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const { toast } = useToast()
-  const itemsPerPage = 24
+  const itemsPerPage = 20
   const lastFetchParamsRef = useRef<string>("")
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -60,14 +58,45 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
       lastFetchParamsRef.current = paramsString
 
       const response = await fetch(`/api/files?${params}`)
-      if (!response.ok) throw new Error("Failed to fetch files")
+      
+      if (response.status === 401) {
+        // Если пользователь не авторизован, перенаправляем на страницу входа
+        router.push('/login')
+        return
+      }
+      
+      if (response.status === 429) {
+        // Обработка ошибки rate limiting
+        const errorData = await response.json()
+        const retryAfter = response.headers.get('X-RateLimit-Reset')
+        const remaining = response.headers.get('X-RateLimit-Remaining')
+        
+        toast({
+          variant: "destructive",
+          title: "Слишком много запросов",
+          description: `Пожалуйста, подождите ${retryAfter} секунд перед следующей попыткой. Осталось запросов: ${remaining}`,
+        })
+        
+        // Пробуем снова через указанное время
+        setTimeout(() => {
+          if (isMounted.current) {
+            fetchFiles(offset, search)
+          }
+        }, (parseInt(retryAfter || '60') * 1000))
+        
+        return
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Failed to fetch files")
+      }
       
       const data = await response.json()
       
       if (offset === 0) {
         setFiles(data.files)
       } else {
-        await new Promise(resolve => setTimeout(resolve, 100))
         setFiles(prev => [...prev, ...data.files])
       }
       
@@ -76,8 +105,8 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
       console.error("Error fetching files:", error)
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to fetch files. Please refresh the page.",
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : "Не удалось загрузить файлы. Пожалуйста, обновите страницу.",
       })
     } finally {
       setIsLoading(false)
@@ -211,7 +240,13 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
   }
 
   const handleFileUpload = (newFiles: File[]) => {
-    setFiles(prev => [...newFiles, ...prev])
+    setFiles(prev => {
+      // Фильтруем новые файлы, исключая дубликаты
+      const uniqueNewFiles = newFiles.filter(newFile => 
+        !prev.some(existingFile => existingFile.id === newFile.id)
+      );
+      return [...uniqueNewFiles, ...prev];
+    });
   }
 
   const handleCardClick = (fileId: string, index: number, event: React.MouseEvent) => {
@@ -277,14 +312,14 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
           </Button>
           <Button onClick={() => setIsUploading(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Upload
+            Загрузить
           </Button>
           {selectedFiles.size > 0 && (
             <Button
               variant="destructive"
               onClick={handleBulkDelete}
             >
-              Delete Selected ({selectedFiles.size})
+              Удалить выбранные ({selectedFiles.size})
             </Button>
           )}
         </div>

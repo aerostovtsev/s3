@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     orderBy: {
       createdAt: 'desc'
     },
-    take: 24
+    take: 20
   })
 
   // Преобразуем даты в строки

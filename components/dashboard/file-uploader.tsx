@@ -62,7 +62,7 @@ export function FileUploader({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Upload Files</DialogTitle>
+          <DialogTitle>Загрузить файлы</DialogTitle>
         </DialogHeader>
 
         <div
@@ -72,14 +72,14 @@ export function FileUploader({
           <input {...getInputProps()} />
           <Upload className="h-10 w-10 text-muted-foreground mb-2" />
           {isDragActive ? (
-            <p className="text-center">Drop the files here...</p>
+            <p className="text-center">Перетащите файлы сюда...</p>
           ) : (
             <p className="text-center">
-              Drag & drop files here, or click to select files
+              Перетащите файлы сюда, или нажмите, чтобы выбрать файлы
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            Maximum file size: 50GB
+            Максимальный размер файла: 50GB
           </p>
         </div>
 

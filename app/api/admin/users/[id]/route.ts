@@ -1,85 +1,117 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { z } from "zod"
+import { Prisma } from "@prisma/client"
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+const updateUserSchema = z.object({
+  name: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  role: z.enum(["ADMIN", "USER"]).optional(),
+})
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions)
-    const { id } = await params
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const userId = id
-    const { role } = await request.json()
+    const body = await req.json()
+    const validatedData = updateUserSchema.parse(body)
+    const { id: userId } = await params
 
-    if (!role || !["USER", "ADMIN"].includes(role)) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 })
-    }
+    // Если email меняется, проверяем, не занят ли он другим пользователем
+    if (validatedData.email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email: validatedData.email,
+          NOT: {
+            id: userId
+          }
+        }
+      })
 
-    // Make sure not to change their own role
-    if (userId === session.user.id) {
-      return NextResponse.json({ error: "Cannot change your own role" }, { status: 400 })
+      if (existingUser) {
+        return new NextResponse(
+          JSON.stringify({ error: "Email already taken" }), 
+          { status: 400 }
+        )
+      }
     }
 
     const updatedUser = await prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        role,
-      },
+      where: { id: userId },
+      data: validatedData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     })
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = updatedUser
-
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json({
+      ...updatedUser,
+      createdAt: updatedUser.createdAt.toISOString(),
+      updatedAt: updatedUser.updatedAt.toISOString(),
+    })
   } catch (error) {
-    console.error("Error updating user:", error)
-    return NextResponse.json({ error: "Failed to update user" }, { status: 500 })
+    if (error instanceof z.ZodError) {
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid request data" }), 
+        { status: 400 }
+      )
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return new NextResponse(
+          JSON.stringify({ error: "Email already taken" }), 
+          { status: 400 }
+        )
+      }
+    }
+
+    console.error("[USER_UPDATE]", error)
+    return new NextResponse(
+      JSON.stringify({ error: "Internal server error" }), 
+      { status: 500 }
+    )
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions)
-    const { id } = await params
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const userId = id
+    const { id: userId } = await params
 
-    // Make sure not to delete themselves
-    if (userId === session.user.id) {
-      return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 })
-    }
-
-    // Delete user's files
-    await prisma.file.updateMany({
-      where: {
-        userId,
-      },
-      data: {
-        isDeleted: true,
-      },
-    })
-
-    // Delete user
     await prisma.user.delete({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
     })
 
-    return NextResponse.json({ success: true })
+    return new NextResponse(null, { status: 204 })
   } catch (error) {
-    console.error("Error deleting user:", error)
-    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 })
+    console.error("[USER_DELETE]", error)
+    return new NextResponse(
+      JSON.stringify({ error: "Internal server error" }), 
+      { status: 500 }
+    )
   }
 }
 

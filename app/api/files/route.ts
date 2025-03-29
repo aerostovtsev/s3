@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
@@ -8,12 +8,15 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
     }
 
     const { searchParams } = new URL(req.url)
     const offset = parseInt(searchParams.get("offset") || "0")
-    const limit = parseInt(searchParams.get("limit") || "24")
+    const limit = parseInt(searchParams.get("limit") || "20")
     const search = searchParams.get("search") || ""
 
     const where: Prisma.FileWhereInput = {
@@ -46,6 +49,14 @@ export async function GET(req: Request) {
     })
   } catch (error) {
     console.error("Error fetching files:", error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json(
+        { error: "Database error occurred" },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

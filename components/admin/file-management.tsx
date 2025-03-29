@@ -32,7 +32,7 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null)
   const { toast } = useToast()
-  const itemsPerPage = 24
+  const itemsPerPage = 20
   const lastFetchParamsRef = useRef<string>("")
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -64,7 +64,6 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
       if (offset === 0) {
         setFiles(data.files)
       } else {
-        await new Promise(resolve => setTimeout(resolve, 100))
         setFiles(prev => [...prev, ...data.files])
       }
       
@@ -354,10 +353,11 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Файл</TableHead>
-                <TableHead>Владелец</TableHead>
+                <TableHead>Пользователь</TableHead>
                 <TableHead>Размер</TableHead>
                 <TableHead>Тип</TableHead>
                 <TableHead>Дата создания</TableHead>
+                <TableHead>Дата обновления</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead className="w-24"></TableHead>
               </TableRow>
@@ -395,6 +395,7 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
                         <TableCell>{formatFileSize(file.size)}</TableCell>
                         <TableCell>{file.type}</TableCell>
                         <TableCell>{formatDate(file.createdAt)}</TableCell>
+                        <TableCell>{formatDate(file.updatedAt)}</TableCell>
                         <TableCell>
                           <span className={cn(
                             "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",

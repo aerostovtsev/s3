@@ -134,7 +134,7 @@ export function FileCard({
                   handleDownload()
                 }}>
                   <Download className="mr-2 h-4 w-4" />
-                  Download
+                  Скачать
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive"
@@ -144,7 +144,7 @@ export function FileCard({
                   }}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  Удалить
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -159,10 +159,9 @@ export function FileCard({
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete File</DialogTitle>
+            <DialogTitle>Удалить файл</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{file.name}"? This action cannot
-              be undone.
+              Вы уверены, что хотите удалить файл "{file.name}"? Это действие нельзя отменить.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -170,10 +169,10 @@ export function FileCard({
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
             >
-              Cancel
+              Отменить
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              Delete
+              Удалить
             </Button>
           </DialogFooter>
         </DialogContent>

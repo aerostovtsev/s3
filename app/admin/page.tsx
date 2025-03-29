@@ -20,18 +20,21 @@ export default async function AdminPage() {
     orderBy: {
       createdAt: "desc",
     },
-    take: 24,
+    take: 20,
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
       createdAt: true,
+      updatedAt: true,
     },
   }).then(users => users.map(user => ({
     ...user,
     name: user.name || "",
     createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    role: user.role as "ADMIN" | "USER",
   })))
 
   return <AdminClient user={session.user} initialUsers={users} />

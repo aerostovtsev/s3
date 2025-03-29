@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const offset = parseInt(searchParams.get("offset") || "0")
-    const limit = parseInt(searchParams.get("limit") || "24")
+    const limit = parseInt(searchParams.get("limit") || "20")
     const search = searchParams.get("search") || ""
 
     const where: Prisma.UserWhereInput = {
@@ -38,10 +38,17 @@ export async function GET(request: NextRequest) {
         email: true,
         role: true,
         createdAt: true,
+        updatedAt: true,
       },
     })
 
-    return NextResponse.json({ users })
+    return NextResponse.json({
+      users: users.map(user => ({
+        ...user,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      }))
+    })
   } catch (error) {
     console.error("Error fetching users:", error)
     return NextResponse.json(
@@ -88,10 +95,15 @@ export async function POST(request: NextRequest) {
         email: true,
         role: true,
         createdAt: true,
+        updatedAt: true,
       },
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json({
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    })
   } catch (error) {
     console.error("Error creating user:", error)
     if (error instanceof Error) {

@@ -14,14 +14,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Search, UserPlus, Trash2 } from "lucide-react"
+import { Search, UserPlus, Trash2, Edit } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { createUserSchema, type CreateUserInput } from "@/lib/validations/user"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { z } from "zod"
 
 interface UserManagementProps {
   initialUsers: User[]
@@ -31,10 +31,12 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>(initialUsers)
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false)
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false)
+  const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const itemsPerPage = 24
+  const itemsPerPage = 20
   const [hasMore, setHasMore] = useState(initialUsers.length === itemsPerPage)
   const { toast } = useToast()
   const lastFetchParamsRef = useRef<string>("")
@@ -49,6 +51,25 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       role: "USER",
     },
   })
+
+  const editForm = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      role: "USER",
+    },
+  })
+
+  useEffect(() => {
+    if (userToEdit) {
+      editForm.reset({
+        name: userToEdit.name,
+        email: userToEdit.email,
+        role: userToEdit.role as "ADMIN" | "USER",
+      })
+    }
+  }, [userToEdit, editForm])
 
   const fetchUsers = async (offset: number = 0, search: string = searchQuery) => {
     try {
@@ -142,7 +163,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
     setSearchQuery(value)
   }
 
-  const handleAddUser = async (data: CreateUserInput) => {
+  const handleAddUser = async (data: z.infer<typeof createUserSchema>) => {
     try {
       const response = await fetch("/api/admin/users", {
         method: "POST",
@@ -152,27 +173,78 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         body: JSON.stringify(data),
       })
 
+      const responseData = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create user")
+        form.setError("email", {
+          type: "manual",
+          message: responseData.error || "Не удалось создать пользователя"
+        })
+        toast({
+          title: "Ошибка",
+          description: responseData.error || "Не удалось создать пользователя",
+          variant: "destructive",
+        })
+        return
       }
 
-      const createdUser = await response.json()
-
-      setUsers([createdUser, ...users])
+      setUsers((prev) => [...prev, responseData])
       form.reset()
       setIsAddUserDialogOpen(false)
+      toast({
+        title: "Успешно",
+        description: "Пользователь создан",
+      })
+    } catch (error) {
+      console.error("[USER_CREATE]", error)
+      form.setError("email", {
+        type: "manual",
+        message: "Произошла ошибка при создании пользователя"
+      })
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при создании пользователя",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditUser = async (data: CreateUserInput) => {
+    if (!userToEdit) return
+
+    try {
+      const response = await fetch(`/api/admin/users/${userToEdit.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update user")
+      }
+
+      const updatedUser = (await response.json()) as User
+
+      setUsers(users.map(user => 
+        user.id === updatedUser.id ? updatedUser : user
+      ))
+      
+      setIsEditUserDialogOpen(false)
+      setUserToEdit(null)
 
       toast({
-        title: "Пользователь создан",
-        description: "Пользователь успешно создан",
+        title: "Пользователь обновлен",
+        description: "Данные пользователя успешно обновлены",
       })
     } catch (error: unknown) {
-      console.error("Error creating user:", error)
+      console.error("Error updating user:", error)
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: error instanceof Error ? error.message : "Не удалось создать пользователя",
+        description: error instanceof Error ? error.message : "Не удалось обновить пользователя",
       })
     }
   }
@@ -230,7 +302,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         throw new Error(data.error || "Failed to update user role")
       }
 
-      setUsers(users.map((user) => (user.id === userId ? { ...user, role } : user)))
+      setUsers(users.map((user) => (user.id === userId ? { ...user, role: role as "ADMIN" | "USER" } : user)))
 
       toast({
         title: "Role updated",
@@ -268,7 +340,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         </div>
         <Button onClick={() => setIsAddUserDialogOpen(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
-          Add User
+          Добавить
         </Button>
       </div>
 
@@ -281,6 +353,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <TableHead>Email</TableHead>
                 <TableHead>Роль</TableHead>
                 <TableHead>Дата создания</TableHead>
+                <TableHead>Дата изменения</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
@@ -309,17 +382,30 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                         </Select>
                       </TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
+                      <TableCell>{formatDate(user.updatedAt)}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setUserToDelete(user)
-                            setIsDeleteUserDialogOpen(true)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setUserToEdit(user)
+                              setIsEditUserDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setUserToDelete(user)
+                              setIsDeleteUserDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -332,7 +418,15 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       </div>
 
       {/* Add User Dialog */}
-      <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+      <Dialog 
+        open={isAddUserDialogOpen} 
+        onOpenChange={(open) => {
+          setIsAddUserDialogOpen(open)
+          if (!open) {
+            form.reset()
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Добавить нового пользователя</DialogTitle>
@@ -362,7 +456,12 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Введите email" {...field} />
+                      <Input 
+                        type="email" 
+                        placeholder="Введите email" 
+                        {...field} 
+                        className={form.formState.errors.email ? "border-red-500" : ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -374,9 +473,12 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Роль</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={form.formState.errors.role ? "border-red-500" : ""}>
                           <SelectValue placeholder="Выберите роль" />
                         </SelectTrigger>
                       </FormControl>
@@ -393,7 +495,83 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                 <Button variant="outline" onClick={() => setIsAddUserDialogOpen(false)}>
                   Отмена
                 </Button>
-                <Button type="submit">Добавить пользователя</Button>
+                <Button type="submit">Добавить</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Edit user information. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditUser)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USER">User</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditUserDialogOpen(false)}
+                  type="button"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
               </DialogFooter>
             </form>
           </Form>

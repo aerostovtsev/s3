@@ -14,8 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { LogOut, UserIcon, Settings, Database, LayoutDashboard } from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { LogOut, Database } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 interface DashboardHeaderProps {
   user: User & {

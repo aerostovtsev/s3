@@ -16,11 +16,10 @@ interface UploadHistoryProps {
 export function UploadHistory({ initialHistory }: UploadHistoryProps) {
   const [history, setHistory] = useState<UploadHistoryType[]>(initialHistory)
   const [isLoading, setIsLoading] = useState(false)
-  const [showSkeleton, setShowSkeleton] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [hasMore, setHasMore] = useState(true)
-  const itemsPerPage = 24
+  const itemsPerPage = 20
   const lastFetchParamsRef = useRef<string>("")
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -28,11 +27,7 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
 
   const fetchHistory = async (offset: number = 0, search: string = searchQuery, status: string = statusFilter) => {
     try {
-      if (isLoading || (!isMounted.current && offset === 0)) return;
-
-      if (!search && status === "all" && offset === 0) {
-        return
-      }
+      if (isLoading) return;
 
       const params = new URLSearchParams({
         offset: offset.toString(),
@@ -47,7 +42,6 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
       }
 
       setIsLoading(true)
-      setShowSkeleton(true)
       lastFetchParamsRef.current = paramsString
 
       const response = await fetch(`/api/admin/upload-history?${params}`)
@@ -71,19 +65,34 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
       }
       setHasMore(false)
     } finally {
-      setTimeout(() => {
-        setShowSkeleton(false)
-        setIsLoading(false)
-      }, 500)
+      setIsLoading(false)
     }
   }
 
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0]
-    if (target.isIntersecting && hasMore && !isLoading && history.length > 0 && isMounted.current) {
-      fetchHistory(history.length)
+    if (target.isIntersecting && hasMore && !isLoading && history.length > 0) {
+      fetchHistory(history.length, searchQuery, statusFilter)
     }
-  }, [hasMore, isLoading, history.length]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasMore, isLoading, history.length, searchQuery, statusFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "20px",
+      threshold: 0.1,
+    })
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current)
+      }
+    }
+  }, [handleObserver])
 
   useEffect(() => {
     if (!isMounted.current) {
@@ -91,31 +100,15 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
       return
     }
 
-    const option = {
-      root: null,
-      rootMargin: "200px",
-      threshold: 0
-    }
-
-    const observer = new IntersectionObserver(handleObserver, option)
-    const currentElement = loadMoreRef.current
-
-    if (currentElement) observer.observe(currentElement)
-
-    return () => {
-      if (currentElement) observer.unobserve(currentElement)
-    }
-  }, [handleObserver])
-
-  useEffect(() => {
-    if (!isMounted.current) return
-
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
 
     if (searchQuery || statusFilter !== "all") {
       searchTimeoutRef.current = setTimeout(() => {
+        setHistory([])
+        setHasMore(true)
+        lastFetchParamsRef.current = ""
         fetchHistory(0, searchQuery, statusFilter)
       }, 300)
     } else {
@@ -177,11 +170,11 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-medium">Пользователь</TableHead>
                 <TableHead className="font-medium">Файл</TableHead>
+                <TableHead className="font-medium">Пользователь</TableHead>
                 <TableHead className="font-medium">Размер</TableHead>
-                <TableHead className="font-medium">Статус</TableHead>
                 <TableHead className="font-medium">Дата</TableHead>
+                <TableHead className="font-medium">Статус</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -198,9 +191,10 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
                       key={entry.id}
                       className="hover:bg-muted/50"
                     >
-                      <TableCell className="font-medium">{entry.user?.email || "Unknown"}</TableCell>
                       <TableCell>{entry.file?.name || "Unknown"}</TableCell>
+                      <TableCell className="font-medium">{entry.user?.email || "Unknown"}</TableCell>
                       <TableCell className="text-muted-foreground">{formatFileSize(entry.size)}</TableCell>
+                      <TableCell className="text-muted-foreground">{formatDate(entry.createdAt)}</TableCell>
                       <TableCell>
                         <span className={cn(
                           "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
@@ -211,7 +205,6 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
                           {entry.status}
                         </span>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(entry.createdAt)}</TableCell>
                     </TableRow>
                   ))}
                 </>

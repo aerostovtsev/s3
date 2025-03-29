@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Invalid request", { status: 400 })
     }
 
-    // Soft delete files
     await prisma.file.updateMany({
       where: {
         id: {

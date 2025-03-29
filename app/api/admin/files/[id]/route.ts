@@ -23,7 +23,6 @@ export async function PATCH(
       )
     }
 
-    // Проверяем существование файла
     const file = await prisma.file.findUnique({
       where: {
         id: fileId,
@@ -38,7 +37,6 @@ export async function PATCH(
     }
 
     if (action === "restore") {
-      // Восстанавливаем файл
       await prisma.file.update({
         where: {
           id: fileId,
@@ -48,7 +46,6 @@ export async function PATCH(
         },
       })
     } else {
-      // Логически удаляем файл
       await prisma.file.update({
         where: {
           id: fileId,

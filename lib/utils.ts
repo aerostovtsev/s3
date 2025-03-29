@@ -22,11 +22,15 @@ export function getFileExtension(filename: string): string {
   return ext && ext !== filename ? ext : "";
 }
 
-export function formatDate(date: Date | string): string {
-  const parsedDate = typeof date === "string" ? new Date(date) : date;
-  
+export function formatDate(date: string | Date | undefined): string {
+  if (!date) {
+    return "-"
+  }
+
+  const parsedDate = typeof date === "string" ? new Date(date) : date
+
   if (!(parsedDate instanceof Date) || isNaN(parsedDate.getTime())) {
-    throw new Error(`Invalid date input: ${date}`);
+    return "-"
   }
 
   return parsedDate.toLocaleString("ru-RU", {
@@ -35,5 +39,5 @@ export function formatDate(date: Date | string): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  });
+  })
 }

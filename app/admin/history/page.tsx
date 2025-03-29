@@ -34,7 +34,7 @@ export default async function AdminHistoryPage() {
     orderBy: {
       createdAt: "desc",
     },
-    take: 24,
+    take: 20,
   }).then(history => history.map(item => ({
     ...item,
     size: item.size.toString(),
