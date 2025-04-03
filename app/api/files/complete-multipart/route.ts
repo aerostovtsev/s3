@@ -5,6 +5,7 @@ import { completeMultipartUpload } from "@/lib/s3";
 import { createFileAndHistory } from "@/lib/file-utils";
 
 export async function POST(request: Request) {
+  let fileName = "unknown";
   try {
     const session = await getServerSession(authOptions);
 
@@ -13,16 +14,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("Received complete-multipart request:", {
-      fileName: body.fileName,
-      uploadId: body.uploadId,
-      partsCount: body.parts?.length,
-      size: body.size,
-      type: body.type,
-      key: body.key,
-    });
-
-    const { fileName, uploadId, parts, size, type, key } = body;
+    const { uploadId, parts, size, type, key } = body;
+    fileName = body.fileName || "unknown";
 
     if (!fileName || !uploadId || !parts || !size || !type || !key) {
       console.error("Missing required fields:", {
@@ -39,13 +32,24 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log("Starting finalization of upload:", {
+      fileName,
+      uploadId,
+      partsCount: parts.length,
+      size,
+      type,
+      key,
+    });
     const fileSize = size.toString();
-
-    console.log("Starting completeMultipartUpload...");
     await completeMultipartUpload(key, uploadId, parts);
-    console.log("Multipart upload completed successfully");
 
-    console.log("Creating file record in database...");
+    console.log("Creating file record in database:", {
+      fileName,
+      size: fileSize,
+      type,
+      path: key,
+      userId: session.user.id,
+    });
     const file = await createFileAndHistory({
       fileName,
       size: fileSize,
@@ -53,22 +57,27 @@ export async function POST(request: Request) {
       path: key,
       userId: session.user.id,
     });
-    console.log("File record created:", file);
 
-    const serializedFile = {
-      ...file,
-    };
-
+    console.log("File upload completed successfully:", {
+      fileId: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      path: file.path,
+    });
     return NextResponse.json({
       success: true,
       message: "Multipart upload completed successfully",
-      file: serializedFile,
+      file,
     });
-  } catch (error) {
-    console.error("Error in complete-multipart route:", error);
+  } catch (error: any) {
+    console.error("Error in complete-multipart route:", {
+      fileName,
+      error,
+    });
     return NextResponse.json(
-      { error: "Failed to complete multipart upload", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
+      { error: error.message || "Failed to complete upload" },
+      { status: error.message?.includes("Session expired") ? 401 : 500 }
     );
   }
-} 
+}

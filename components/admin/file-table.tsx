@@ -1,38 +1,29 @@
-import { useToast } from "@/components/ui/use-toast"
-import { File } from "@prisma/client"
-import { Download } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { TableCell } from "@/components/ui/table"
+import { File } from "@prisma/client";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TableCell } from "@/components/ui/table";
+import { toast } from "sonner";
 
 interface FileTableProps {
-  file: File
+  file: File;
 }
 
 export function FileTable({ file }: FileTableProps) {
-  const { toast } = useToast();
-
   const handleDownload = async (fileId: string) => {
     try {
       const response = await fetch(`/api/files/download/${fileId}`);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to get download link");
       }
 
-      window.open(data.url, '_blank');
-      
-      toast({
-        title: "Success",
-        description: "Download started",
-      });
+      window.open(data.url, "_blank");
+
+      toast.success("Скачивание файла началось");
     } catch (error) {
       console.error("Error downloading file:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
-      });
+      toast.error("Не удалось скачать файл, попробуйте повторить позже");
     }
   };
 
@@ -50,4 +41,4 @@ export function FileTable({ file }: FileTableProps) {
       </div>
     </TableCell>
   );
-} 
+}

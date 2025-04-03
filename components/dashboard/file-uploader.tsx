@@ -12,6 +12,7 @@ import { Upload } from "lucide-react";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { UploadProgress } from "./upload-progress";
 import type { File } from "@/types/file";
+import { toast } from "sonner";
 
 interface FileUploaderProps {
   isOpen: boolean;
@@ -33,21 +34,29 @@ export function FileUploader({
     removeFile,
     uploadFiles,
     resetUploadState,
-  } = useFileUpload({ 
-    userId, 
+    cancelUpload,
+  } = useFileUpload({
+    userId,
     onUploadComplete: async (files) => {
       try {
-        console.log('Upload complete, files:', files);
-        await onUploadComplete(files);
+        console.log("Upload complete, files:", files);
+        if (files && files.length > 0) {
+          await onUploadComplete(files);
+        }
       } catch (error) {
-        console.error('Error updating file list:', error);
+        console.error("Error updating file list:", error);
       }
-    }
+    },
   });
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
-      console.log('Files dropped:', acceptedFiles);
+      const zeroSizeFiles = acceptedFiles.filter((file) => file.size === 0);
+      if (zeroSizeFiles.length > 0) {
+        toast.error("Невозможно загрузить файлы размером 0 байт");
+        return;
+      }
+      console.log("Files dropped:", acceptedFiles);
       addFiles(acceptedFiles);
     },
     multiple: true,
@@ -60,17 +69,18 @@ export function FileUploader({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Загрузить файлы</DialogTitle>
+          <DialogTitle>Загрузка файлов</DialogTitle>
         </DialogHeader>
-
         <div
           {...getRootProps()}
-          className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-md cursor-pointer hover:border-primary"
+          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            isDragActive ? "border-primary bg-primary/5" : "border-muted"
+          }`}
         >
           <input {...getInputProps()} />
-          <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+          <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
           {isDragActive ? (
             <p className="text-center">Перетащите файлы сюда...</p>
           ) : (
@@ -82,13 +92,13 @@ export function FileUploader({
             Максимальный размер файла: 50GB
           </p>
         </div>
-
         <UploadProgress
           files={uploadingFiles}
           isUploading={isUploading}
           onRemoveFile={removeFile}
           onUpload={uploadFiles}
           onClose={handleClose}
+          onCancel={cancelUpload}
         />
       </DialogContent>
     </Dialog>

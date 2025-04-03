@@ -1,22 +1,22 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import { AdminTabs } from "@/components/admin/admin-tabs"
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { AdminTabs } from "@/components/admin/admin-tabs";
 
 export default async function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login")
+    redirect("/login");
   }
 
   if (session.user.role !== "ADMIN") {
-    redirect("/dashboard")
+    redirect("/dashboard");
   }
 
   return (
@@ -25,11 +25,9 @@ export default async function AdminLayout({
       <main className="flex-1 p-6">
         <div className="mx-auto max-w-7xl">
           <AdminTabs />
-          <div className="mt-6">
-            {children}
-          </div>
+          <div className="mt-6">{children}</div>
         </div>
       </main>
     </div>
-  )
-} 
+  );
+}

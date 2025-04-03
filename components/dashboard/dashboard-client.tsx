@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { DashboardHeader } from "@/components/dashboard/dashboard-header"
-import { FileManager } from "@/components/dashboard/file-manager"
-import type { File } from "@/types/file"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { FileManager } from "@/components/dashboard/file-manager";
+import type { File } from "@/types/file";
 
 interface DashboardClientProps {
   user: {
-    id: string
-    name: string
-    email: string
-    role: string
-  }
-  initialFiles: File[]
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+  initialFiles: File[];
 }
 
 export function DashboardClient({ user, initialFiles }: DashboardClientProps) {
@@ -24,5 +24,5 @@ export function DashboardClient({ user, initialFiles }: DashboardClientProps) {
         </div>
       </main>
     </div>
-  )
-} 
+  );
+}

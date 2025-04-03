@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer"
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -8,7 +8,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-})
+});
 
 export async function sendEmail(to: string, subject: string, text: string) {
   try {
@@ -17,10 +17,10 @@ export async function sendEmail(to: string, subject: string, text: string) {
       to,
       subject,
       text,
-    })
-    return true
+    });
+    return true;
   } catch (error) {
-    console.error("Error sending email:", error)
-    return false
+    console.error("Error sending email:", error);
+    return false;
   }
-} 
+}

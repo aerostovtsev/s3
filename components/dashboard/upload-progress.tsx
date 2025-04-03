@@ -11,6 +11,7 @@ interface UploadProgressProps {
   onRemoveFile: (fileId: string) => void;
   onUpload: () => void;
   onClose: () => void;
+  onCancel: () => void;
 }
 
 export function UploadProgress({
@@ -19,6 +20,7 @@ export function UploadProgress({
   onRemoveFile,
   onUpload,
   onClose,
+  onCancel,
 }: UploadProgressProps) {
   if (files.length === 0) return null;
 
@@ -59,26 +61,32 @@ export function UploadProgress({
                 {file.error ? (
                   <span className="text-destructive">{file.error}</span>
                 ) : file.uploadedFile ? (
-                  <span className="text-green-500">Complete</span>
+                  <span className="text-green-500">Загружено</span>
                 ) : file.chunks ? (
                   <span>
                     {Math.round(
-                      (file.chunks.filter(c => c.uploaded).length / file.chunks.length) * 100
-                    )}%
+                      (file.chunks.filter((c) => c.uploaded).length /
+                        file.chunks.length) *
+                        100
+                    )}
+                    %
                   </span>
                 ) : (
                   <span>{file.progress}%</span>
                 )}
               </div>
               {!file.error && !file.uploadedFile && (
-                <Progress 
-                  value={file.chunks 
-                    ? Math.round(
-                        (file.chunks.filter(c => c.uploaded).length / file.chunks.length) * 100
-                      )
-                    : file.progress
-                  } 
-                  className="h-1 mt-1" 
+                <Progress
+                  value={
+                    file.chunks
+                      ? Math.round(
+                          (file.chunks.filter((c) => c.uploaded).length /
+                            file.chunks.length) *
+                            100
+                        )
+                      : file.progress
+                  }
+                  className="h-1 mt-1"
                 />
               )}
             </div>
@@ -90,28 +98,27 @@ export function UploadProgress({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Some files could not be uploaded. Please check the errors and try
-            again.
+            Файлы не были загружены. Пожалуйста, проверьте ошибки и попробуйте
+            снова.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={onClose}>
-          {allUploaded ? "Close" : "Cancel"}
+        <Button variant="outline" onClick={allUploaded ? onClose : onCancel}>
+          {allUploaded ? "Закрыть" : "Отменить"}
         </Button>
         {!allUploaded && (
           <Button
             onClick={onUpload}
             disabled={
-              isUploading ||
-              files.every((f) => f.error || f.uploadedFile)
+              isUploading || files.every((f) => f.error || f.uploadedFile)
             }
           >
-            {isUploading ? "Uploading..." : "Upload"}
+            {isUploading ? "Загружается..." : "Загрузить"}
           </Button>
         )}
       </div>
     </div>
   );
-} 
+}

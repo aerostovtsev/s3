@@ -1,104 +1,105 @@
-import { NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
-import { sign } from "jsonwebtoken"
-import { sendEmail } from "@/lib/email"
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { sign } from "jsonwebtoken";
+import { sendEmail } from "@/lib/email";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // Объявляем типы для глобального хранилища токенов
 declare global {
-  var verificationTokens: Map<string, string> | undefined
+  var verificationTokens: Map<string, string> | undefined;
 }
 
 // Функция для генерации 6-значного кода
 function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // Функция проверки разрешенного домена
 function isAllowedDomain(email: string): boolean {
-  const allowedDomains = ['1cbit.ru', 'abt.ru']
-  const domain = email.split('@')[1]?.toLowerCase()
-  return allowedDomains.includes(domain)
+  const allowedDomains = ["1cbit.ru", "abt.ru"];
+  const domain = email.split("@")[1]?.toLowerCase();
+  return allowedDomains.includes(domain);
 }
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json()
+    const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Проверяем домен
     if (!isAllowedDomain(email)) {
       return NextResponse.json(
-        { error: "Access denied. Only @1cbit.ru and @abt.ru email domains are allowed." },
+        {
+          error:
+            "Access denied. Only company FirstBIT email domains are allowed.",
+        },
         { status: 403 }
-      )
+      );
     }
 
     // Ищем пользователя
     let user = await prisma.user.findUnique({
-      where: { email }
-    })
+      where: { email },
+    });
 
     // Если пользователя нет, создаем нового с ролью USER
     if (!user) {
       user = await prisma.user.create({
         data: {
           email: email as string,
-          role: 'USER',
+          role: "USER",
           // Добавляем имя пользователя из email (часть до @)
-          name: email.split('@')[0]
-        }
-      })
+          name: email.split("@")[0],
+        },
+      });
     }
 
     // Генерируем 6-значный код
-    const verificationCode = generateVerificationCode()
+    const verificationCode = generateVerificationCode();
 
     // Генерируем JWT с кодом верификации
     const token = sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        code: verificationCode 
+        code: verificationCode,
       },
       JWT_SECRET,
       { expiresIn: "15m" }
-    )
+    );
 
     // Сохраняем токен в памяти
-    globalThis.verificationTokens = globalThis.verificationTokens || new Map<string, string>()
-    globalThis.verificationTokens.set(email, token)
+    globalThis.verificationTokens =
+      globalThis.verificationTokens || new Map<string, string>();
+    globalThis.verificationTokens.set(email, token);
 
     // Отправляем код на email
     const emailSent = await sendEmail(
       email,
-      "Your verification code",
-      `Your verification code is: ${verificationCode}\n\nThis code will expire in 15 minutes.`
-    )
+      "Ваш код верификации S3",
+      `Ваш код верификации: ${verificationCode}\n\nЭтот код будет действителен в течение 15 минут.`
+    );
 
     if (!emailSent) {
       return NextResponse.json(
         { error: "Failed to send email" },
         { status: 500 }
-      )
+      );
     }
 
     // Для тестирования выводим код в консоль
-    console.log("Verification code:", verificationCode)
+    console.log("Verification code:", verificationCode);
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error sending verification code:", error)
+    console.error("Error sending verification code:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
-} 
+}
