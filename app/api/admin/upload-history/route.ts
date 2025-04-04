@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions)
     if (!session?.user || session.user.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const offset = parseInt(searchParams.get("offset") || "0");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "all";
+    const searchParams = request.nextUrl.searchParams
+    const offset = parseInt(searchParams.get("offset") || "0")
+    const limit = parseInt(searchParams.get("limit") || "20")
+    const search = searchParams.get("search") || ""
+    const status = searchParams.get("status") || "all"
 
     const where: Prisma.UploadHistoryWhereInput = {
       status: status === "all" ? undefined : status.toUpperCase(),
@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
             },
           ]
         : undefined,
-    };
+    }
 
     // Получаем общее количество записей для пагинации
-    const total = await prisma.uploadHistory.count({ where });
+    const total = await prisma.uploadHistory.count({ where })
 
     const history = await prisma.uploadHistory.findMany({
       where,
@@ -55,11 +55,11 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-    });
+    })
 
-    return NextResponse.json({ history, total });
+    return NextResponse.json({ history, total })
   } catch (error) {
-    console.error("Error fetching upload history:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("Error fetching upload history:", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
   }
 }

@@ -1,31 +1,31 @@
-import { File } from "@prisma/client";
-import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TableCell } from "@/components/ui/table";
-import { toast } from "sonner";
+import { File } from "@prisma/client"
+import { Download } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TableCell } from "@/components/ui/table"
+import { toast } from "sonner"
 
 interface FileTableProps {
-  file: File;
+  file: File
 }
 
 export function FileTable({ file }: FileTableProps) {
   const handleDownload = async (fileId: string) => {
     try {
-      const response = await fetch(`/api/files/download/${fileId}`);
-      const data = await response.json();
+      const response = await fetch(`/api/files/download/${fileId}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to get download link");
+        throw new Error(data.error || "Failed to get download link")
       }
 
-      window.open(data.url, "_blank");
+      window.open(data.url, "_blank")
 
-      toast.success("Скачивание файла началось");
+      toast.success("Скачивание файла началось")
     } catch (error) {
-      console.error("Error downloading file:", error);
-      toast.error("Не удалось скачать файл, попробуйте повторить позже");
+      console.error("Error downloading file:", error)
+      toast.error("Не удалось скачать файл, попробуйте повторить позже")
     }
-  };
+  }
 
   return (
     <TableCell>
@@ -40,5 +40,5 @@ export function FileTable({ file }: FileTableProps) {
         </Button>
       </div>
     </TableCell>
-  );
+  )
 }

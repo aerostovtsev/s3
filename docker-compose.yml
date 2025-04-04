@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - app-s3
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DATABASE_URL}
+    volumes:
+      - postgres-s3:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - app-s3
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-s3:/data
+    restart: unless-stopped
+    networks:
+      - app-s3
+
+networks:
+  app-s3:
+    driver: bridge
+
+volumes:
+  postgres-s3:
+  redis-s3:

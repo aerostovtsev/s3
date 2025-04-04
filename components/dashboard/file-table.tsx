@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import type { File } from "@/types/file";
-import { formatFileSize, formatDate } from "@/lib/utils";
-import { getFileTypeIcon } from "@/lib/file-icons";
+import { useState } from "react"
+import type { File } from "@/types/file"
+import { formatFileSize, formatDate } from "@/lib/utils"
+import { getFileTypeIcon } from "@/lib/file-icons"
 import {
   Table,
   TableBody,
@@ -11,14 +11,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -26,45 +26,45 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Download, MoreVertical, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { Download, MoreVertical, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface FileTableProps {
-  files?: File[];
-  onDelete?: (fileId: string) => void;
-  isLoading?: boolean;
+  files?: File[]
+  onDelete?: (fileId: string) => void
+  isLoading?: boolean
 }
 
 export function FileTable({ files = [], onDelete, isLoading }: FileTableProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleDownload = async (fileId: string) => {
     try {
-      console.log("Starting download for file:", fileId);
-      const response = await fetch(`/api/files/download/${fileId}`);
-      const data = await response.json();
+      console.log("Starting download for file:", fileId)
+      const response = await fetch(`/api/files/download/${fileId}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to get download link");
+        throw new Error(data.error || "Failed to get download link")
       }
-      console.log("Received download URL:", data.url);
-      window.open(data.url, "_blank");
+      console.log("Received download URL:", data.url)
+      window.open(data.url, "_blank")
     } catch (error) {
-      console.error("Error downloading file:", error);
-      toast.error("Не удалось скачать файл");
+      console.error("Error downloading file:", error)
+      toast.error("Не удалось скачать файл")
     }
-  };
+  }
 
   const confirmDelete = () => {
-    if (!deletingId || !onDelete) return;
-    onDelete(deletingId);
-    setDeletingId(null);
-  };
+    if (!deletingId || !onDelete) return
+    onDelete(deletingId)
+    setDeletingId(null)
+  }
 
   const fileToDelete = deletingId
     ? files.find((f) => f.id === deletingId)
-    : null;
+    : null
 
   return (
     <>
@@ -91,7 +91,7 @@ export function FileTable({ files = [], onDelete, isLoading }: FileTableProps) {
               </TableRow>
             ) : (
               files.map((file) => {
-                const FileIcon = getFileTypeIcon(file.type);
+                const FileIcon = getFileTypeIcon(file.type)
                 return (
                   <TableRow key={file.id}>
                     <TableCell>
@@ -133,7 +133,7 @@ export function FileTable({ files = [], onDelete, isLoading }: FileTableProps) {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                );
+                )
               })
             )}
           </TableBody>
@@ -166,5 +166,5 @@ export function FileTable({ files = [], onDelete, isLoading }: FileTableProps) {
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

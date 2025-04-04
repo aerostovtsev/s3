@@ -1,24 +1,24 @@
-"use client";
+"use client"
 
-import { useCallback } from "react";
-import { useDropzone } from "react-dropzone";
+import { useCallback } from "react"
+import { useDropzone } from "react-dropzone"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Upload } from "lucide-react";
-import { useFileUpload } from "@/hooks/use-file-upload";
-import { UploadProgress } from "./upload-progress";
-import type { File } from "@/types/file";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { Upload } from "lucide-react"
+import { useFileUpload } from "@/hooks/use-file-upload"
+import { UploadProgress } from "./upload-progress"
+import type { File } from "@/types/file"
+import { toast } from "sonner"
 
 interface FileUploaderProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onUploadComplete: (files: File[]) => void;
-  userId: string;
+  isOpen: boolean
+  onClose: () => void
+  onUploadComplete: (files: File[]) => void
+  userId: string
 }
 
 export function FileUploader({
@@ -39,33 +39,33 @@ export function FileUploader({
     userId,
     onUploadComplete: async (files) => {
       try {
-        console.log("Upload complete, files:", files);
+        console.log("Upload complete, files:", files)
         if (files && files.length > 0) {
-          await onUploadComplete(files);
+          await onUploadComplete(files)
         }
       } catch (error) {
-        console.error("Error updating file list:", error);
+        console.error("Error updating file list:", error)
       }
     },
-  });
+  })
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
-      const zeroSizeFiles = acceptedFiles.filter((file) => file.size === 0);
+      const zeroSizeFiles = acceptedFiles.filter((file) => file.size === 0)
       if (zeroSizeFiles.length > 0) {
-        toast.error("Невозможно загрузить файлы размером 0 байт");
-        return;
+        toast.error("Невозможно загрузить файлы размером 0 байт")
+        return
       }
-      console.log("Files dropped:", acceptedFiles);
-      addFiles(acceptedFiles);
+      console.log("Files dropped:", acceptedFiles)
+      addFiles(acceptedFiles)
     },
     multiple: true,
-  });
+  })
 
   const handleClose = useCallback(() => {
-    resetUploadState();
-    onClose();
-  }, [onClose, resetUploadState]);
+    resetUploadState()
+    onClose()
+  }, [onClose, resetUploadState])
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -102,5 +102,5 @@ export function FileUploader({
         />
       </DialogContent>
     </Dialog>
-  );
+  )
 }

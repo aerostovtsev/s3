@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { useState, useRef, useEffect } from "react"
 
 export function AdminTabs() {
-  const pathname = usePathname();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [hoverStyle, setHoverStyle] = useState({});
-  const [activeStyle, setActiveStyle] = useState({ left: "0px", width: "0px" });
-  const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pathname = usePathname()
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [hoverStyle, setHoverStyle] = useState({})
+  const [activeStyle, setActiveStyle] = useState({ left: "0px", width: "0px" })
+  const tabRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const tabs = [
     {
@@ -25,34 +25,34 @@ export function AdminTabs() {
       href: "/admin/history",
       label: "История",
     },
-  ];
+  ]
 
   useEffect(() => {
     if (hoveredIndex !== null) {
-      const hoveredElement = tabRefs.current[hoveredIndex];
+      const hoveredElement = tabRefs.current[hoveredIndex]
       if (hoveredElement) {
-        const { offsetLeft, offsetWidth } = hoveredElement;
+        const { offsetLeft, offsetWidth } = hoveredElement
         setHoverStyle({
           left: `${offsetLeft}px`,
           width: `${offsetWidth}px`,
-        });
+        })
       }
     }
-  }, [hoveredIndex]);
+  }, [hoveredIndex])
 
   useEffect(() => {
-    const activeIndex = tabs.findIndex((tab) => tab.href === pathname);
+    const activeIndex = tabs.findIndex((tab) => tab.href === pathname)
     if (activeIndex !== -1) {
-      const activeElement = tabRefs.current[activeIndex];
+      const activeElement = tabRefs.current[activeIndex]
       if (activeElement) {
-        const { offsetLeft, offsetWidth } = activeElement;
+        const { offsetLeft, offsetWidth } = activeElement
         setActiveStyle({
           left: `${offsetLeft}px`,
           width: `${offsetWidth}px`,
-        });
+        })
       }
     }
-  }, [pathname]);
+  }, [pathname])
 
   return (
     <div className="relative">
@@ -76,13 +76,13 @@ export function AdminTabs() {
         />
 
         {tabs.map((tab, index) => {
-          const isActive = pathname === tab.href;
+          const isActive = pathname === tab.href
           return (
             <div
               key={tab.href}
               ref={(el) => {
                 if (el) {
-                  tabRefs.current[index] = el;
+                  tabRefs.current[index] = el
                 }
               }}
               className="relative"
@@ -101,9 +101,9 @@ export function AdminTabs() {
                 {tab.label}
               </Link>
             </div>
-          );
+          )
         })}
       </nav>
     </div>
-  );
+  )
 }

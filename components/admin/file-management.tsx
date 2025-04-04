@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import type { File } from "@/types/admin";
-import { formatFileSize, formatDate, cn } from "@/lib/utils";
-import { getFileTypeIcon } from "@/lib/file-icons";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useRef } from "react"
+import type { File } from "@/types/admin"
+import { formatFileSize, formatDate, cn } from "@/lib/utils"
+import { getFileTypeIcon } from "@/lib/file-icons"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 import {
   Search,
   Download,
@@ -33,153 +33,153 @@ import {
   ChevronRight,
   ChevronsRight,
   X,
-} from "lucide-react";
+} from "lucide-react"
 
 interface FileManagementProps {
-  initialFiles: File[];
+  initialFiles: File[]
 }
 
 export function FileManagement({ initialFiles }: FileManagementProps) {
-  const [files, setFiles] = useState<File[]>(initialFiles);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const itemsPerPage = 20;
-  const [currentPage, setCurrentPage] = useState(1);
+  const [files, setFiles] = useState<File[]>(initialFiles)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const itemsPerPage = 20
+  const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(
     Math.ceil(initialFiles.length / itemsPerPage) || 1
-  );
-  const [fileToDelete, setFileToDelete] = useState<File | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const lastFetchParamsRef = useRef<string>("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(false);
+  )
+  const [fileToDelete, setFileToDelete] = useState<File | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const lastFetchParamsRef = useRef<string>("")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMounted = useRef(false)
 
   const fetchFiles = async (
     page: number = currentPage,
     search: string = searchQuery
   ) => {
     try {
-      if (isLoading) return;
+      if (isLoading) return
 
-      const offset = (page - 1) * itemsPerPage;
+      const offset = (page - 1) * itemsPerPage
       const params = new URLSearchParams({
         offset: offset.toString(),
         limit: itemsPerPage.toString(),
         search,
-      });
+      })
 
-      const paramsString = params.toString();
+      const paramsString = params.toString()
       if (paramsString === lastFetchParamsRef.current) {
-        return;
+        return
       }
 
-      setIsLoading(true);
-      lastFetchParamsRef.current = paramsString;
+      setIsLoading(true)
+      lastFetchParamsRef.current = paramsString
 
-      const response = await fetch(`/api/admin/files?${params}`);
-      if (!response.ok) throw new Error("Failed to fetch files");
+      const response = await fetch(`/api/admin/files?${params}`)
+      if (!response.ok) throw new Error("Failed to fetch files")
 
-      const data = await response.json();
+      const data = await response.json()
 
       console.log("Files data:", {
         files: data.files.length,
         total: data.total,
         pages: Math.ceil((data.total || 0) / itemsPerPage),
-      });
+      })
 
-      setFiles(data.files);
-      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+      setFiles(data.files)
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
     } catch (error) {
-      console.error("Error fetching files:", error);
-      toast.error("Не удалось получить файлы, попробуйте обновить страницу");
-      setFiles([]);
-      setTotalPages(1);
+      console.error("Error fetching files:", error)
+      toast.error("Не удалось получить файлы, попробуйте обновить страницу")
+      setFiles([])
+      setTotalPages(1)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
+      isMounted.current = true
       // При первом рендере делаем запрос на сервер для получения актуальных данных
-      fetchFiles(1, "");
-      return;
+      fetchFiles(1, "")
+      return
     }
 
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
 
     if (searchQuery) {
       searchTimeoutRef.current = setTimeout(() => {
-        setCurrentPage(1);
-        fetchFiles(1, searchQuery);
-      }, 500);
+        setCurrentPage(1)
+        fetchFiles(1, searchQuery)
+      }, 500)
     } else {
       // Для пустого поиска тоже делаем запрос
-      setCurrentPage(1);
-      fetchFiles(1, "");
+      setCurrentPage(1)
+      fetchFiles(1, "")
     }
 
     return () => {
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        clearTimeout(searchTimeoutRef.current)
       }
-    };
-  }, [searchQuery]); // Убрали initialFiles, чтобы не вызывать лишние запросы
+    }
+  }, [searchQuery]) // Убрали initialFiles, чтобы не вызывать лишние запросы
 
   useEffect(() => {
     if (isMounted.current) {
-      fetchFiles(currentPage, searchQuery);
+      fetchFiles(currentPage, searchQuery)
     }
-  }, [currentPage]);
+  }, [currentPage])
 
   const handleSearchChange = (value: string) => {
-    if (!isMounted.current) return;
-    setSearchQuery(value);
-  };
+    if (!isMounted.current) return
+    setSearchQuery(value)
+  }
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
-  };
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+  }
 
   const handleSearchReset = () => {
-    setSearchQuery("");
-    setCurrentPage(1);
-    fetchFiles(1, "");
-  };
+    setSearchQuery("")
+    setCurrentPage(1)
+    fetchFiles(1, "")
+  }
 
   // Убедимся, что пагинация отображается, даже если totalPages = 1
   const showPagination = () => {
-    return files.length > 0;
-  };
+    return files.length > 0
+  }
 
   const handleDownload = async (fileId: string) => {
     try {
-      const file = files.find((f) => f.id === fileId);
+      const file = files.find((f) => f.id === fileId)
       if (!file) {
-        throw new Error("File not found");
+        throw new Error("File not found")
       }
 
-      console.log("Starting download for file:", fileId);
-      const response = await fetch(`/api/files/download/${fileId}`);
-      const data = await response.json();
+      console.log("Starting download for file:", fileId)
+      const response = await fetch(`/api/files/download/${fileId}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to get download link");
+        throw new Error(data.error || "Failed to get download link")
       }
 
-      console.log("Received download URL:", data.url);
-      window.open(data.url, "_blank");
+      console.log("Received download URL:", data.url)
+      window.open(data.url, "_blank")
 
-      toast.success("Скачивание файла началось");
+      toast.success("Скачивание файла началось")
     } catch (error) {
-      console.error("Error downloading file:", error);
-      toast.error("Не удалось скачать файл, попробуйте повторить позже");
+      console.error("Error downloading file:", error)
+      toast.error("Не удалось скачать файл, попробуйте повторить позже")
     }
-  };
+  }
 
   const handleDeleteFile = async (fileId: string) => {
     try {
@@ -189,10 +189,10 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ action: "delete" }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to delete file");
+        throw new Error("Failed to delete file")
       }
 
       // Сначала обновляем локально для мгновенной реакции UI
@@ -200,19 +200,19 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
         prev.map((file) =>
           file.id === fileId ? { ...file, isDeleted: true } : file
         )
-      );
+      )
 
-      setIsDeleteDialogOpen(false);
-      setFileToDelete(null);
+      setIsDeleteDialogOpen(false)
+      setFileToDelete(null)
 
       // Затем запрашиваем обновленные данные с сервера
-      fetchFiles(currentPage, searchQuery);
-      toast.success("Файл удален");
+      fetchFiles(currentPage, searchQuery)
+      toast.success("Файл удален")
     } catch (error) {
-      console.error("Error deleting file:", error);
-      toast.error("Не удалось удалить файл, попробуйте повторить позже");
+      console.error("Error deleting file:", error)
+      toast.error("Не удалось удалить файл, попробуйте повторить позже")
     }
-  };
+  }
 
   const handleRestoreFile = async (fileId: string) => {
     try {
@@ -222,11 +222,11 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ action: "restore" }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to restore file");
+        const data = await response.json()
+        throw new Error(data.error || "Failed to restore file")
       }
 
       // Сначала обновляем локально для мгновенной реакции UI
@@ -234,23 +234,23 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
         prev.map((file) =>
           file.id === fileId ? { ...file, isDeleted: false } : file
         )
-      );
+      )
 
       // Затем запрашиваем обновленные данные с сервера
-      fetchFiles(currentPage, searchQuery);
-      toast.success("Файл восстановлен");
+      fetchFiles(currentPage, searchQuery)
+      toast.success("Файл восстановлен")
     } catch (error: unknown) {
-      console.error("Error restoring file:", error);
-      toast.error("Не удалось восстановить файл, попробуйте повторить позже");
+      console.error("Error restoring file:", error)
+      toast.error("Не удалось восстановить файл, попробуйте повторить позже")
     }
-  };
+  }
 
   if (isLoading && files.length === 0) {
     return (
       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         Loading...
       </div>
-    );
+    )
   }
 
   return (
@@ -300,7 +300,7 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
               ) : (
                 <>
                   {files.map((file) => {
-                    const FileIcon = getFileTypeIcon(file.type);
+                    const FileIcon = getFileTypeIcon(file.type)
                     return (
                       <TableRow
                         key={file.id}
@@ -357,8 +357,8 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => {
-                                  setFileToDelete(file);
-                                  setIsDeleteDialogOpen(true);
+                                  setFileToDelete(file)
+                                  setIsDeleteDialogOpen(true)
                                 }}
                                 title="Delete"
                               >
@@ -368,7 +368,7 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
                           </div>
                         </TableCell>
                       </TableRow>
-                    );
+                    )
                   })}
                 </>
               )}
@@ -455,5 +455,5 @@ export function FileManagement({ initialFiles }: FileManagementProps) {
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

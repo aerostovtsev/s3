@@ -1,17 +1,17 @@
-import { Progress } from "@/components/ui/progress";
-import { AlertCircle, CheckCircle2, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { UploadingFile } from "@/hooks/use-file-upload";
-import { formatFileSize } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress"
+import { AlertCircle, CheckCircle2, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { UploadingFile } from "@/hooks/use-file-upload"
+import { formatFileSize } from "@/lib/utils"
 
 interface UploadProgressProps {
-  files: UploadingFile[];
-  isUploading: boolean;
-  onRemoveFile: (fileId: string) => void;
-  onUpload: () => void;
-  onClose: () => void;
-  onCancel: () => void;
+  files: UploadingFile[]
+  isUploading: boolean
+  onRemoveFile: (fileId: string) => void
+  onUpload: () => void
+  onClose: () => void
+  onCancel: () => void
 }
 
 export function UploadProgress({
@@ -22,11 +22,11 @@ export function UploadProgress({
   onClose,
   onCancel,
 }: UploadProgressProps) {
-  if (files.length === 0) return null;
+  if (files.length === 0) return null
 
-  const hasErrors = files.some((f) => f.error);
+  const hasErrors = files.some((f) => f.error)
   const allUploaded =
-    files.length > 0 && files.every((f) => f.error || f.uploadedFile);
+    files.length > 0 && files.every((f) => f.error || f.uploadedFile)
 
   return (
     <div className="space-y-4">
@@ -120,5 +120,5 @@ export function UploadProgress({
         )}
       </div>
     </div>
-  );
+  )
 }

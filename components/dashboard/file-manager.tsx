@@ -1,14 +1,14 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { FileCard } from "@/components/dashboard/file-card";
-import { FileTable } from "@/components/dashboard/file-table";
-import { FileUploader } from "@/components/dashboard/file-uploader";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { ViewType, File } from "@/types/file";
+import { useState, useEffect, useRef } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import { FileCard } from "@/components/dashboard/file-card"
+import { FileTable } from "@/components/dashboard/file-table"
+import { FileUploader } from "@/components/dashboard/file-uploader"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import type { ViewType, File } from "@/types/file"
 import {
   Search,
   Grid,
@@ -19,137 +19,137 @@ import {
   ChevronsLeft,
   ChevronsRight,
   X,
-} from "lucide-react";
-import { toast } from "sonner";
+} from "lucide-react"
+import { toast } from "sonner"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
 
 interface FileManagerProps {
-  initialFiles: File[];
-  userId: string;
+  initialFiles: File[]
+  userId: string
 }
 
-type SortType = "name" | "date" | "size";
+type SortType = "name" | "date" | "size"
 
 export function FileManager({ initialFiles, userId }: FileManagerProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const [files, setFiles] = useState<File[]>(initialFiles);
+  const [files, setFiles] = useState<File[]>(initialFiles)
   const [searchQuery, setSearchQuery] = useState(
     searchParams.get("search") || ""
-  );
+  )
   const [viewType, setViewType] = useState<ViewType>(
     (searchParams.get("view") as ViewType) || "grid"
-  );
+  )
   const [sortType, setSortType] = useState<SortType>(
     (searchParams.get("sort") as SortType) || "date"
-  );
+  )
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">(
     (searchParams.get("direction") as "asc" | "desc") || "desc"
-  );
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isViewTypeLoading, setIsViewTypeLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const itemsPerPage = 20;
-  const lastFetchParamsRef = useRef<string>("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(false);
+  )
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isViewTypeLoading, setIsViewTypeLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const itemsPerPage = 20
+  const lastFetchParamsRef = useRef<string>("")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMounted = useRef(false)
 
   const fetchFiles = async (
     page: number = currentPage,
     search: string = searchQuery
   ) => {
     try {
-      if (isLoading) return;
+      if (isLoading) return
 
-      const offset = (page - 1) * itemsPerPage;
+      const offset = (page - 1) * itemsPerPage
       const params = new URLSearchParams({
         offset: offset.toString(),
         limit: itemsPerPage.toString(),
         search,
         sort: sortType,
         direction: sortDirection,
-      });
+      })
 
-      const paramsString = params.toString();
+      const paramsString = params.toString()
       if (paramsString === lastFetchParamsRef.current) {
-        return;
+        return
       }
 
-      setIsLoading(true);
-      lastFetchParamsRef.current = paramsString;
+      setIsLoading(true)
+      lastFetchParamsRef.current = paramsString
 
-      const response = await fetch(`/api/files?${params}`);
+      const response = await fetch(`/api/files?${params}`)
 
       if (response.status === 401) {
-        router.push("/login");
-        return;
+        router.push("/login")
+        return
       }
 
       if (response.status === 429) {
-        const retryAfter = response.headers.get("X-RateLimit-Reset") || "60";
-        const remaining = response.headers.get("X-RateLimit-Remaining") || "0";
-        const retryAfterSeconds = parseInt(retryAfter);
+        const retryAfter = response.headers.get("X-RateLimit-Reset") || "60"
+        const remaining = response.headers.get("X-RateLimit-Remaining") || "0"
+        const retryAfterSeconds = parseInt(retryAfter)
 
         toast.error(
           `Превышен лимит запросов. Пожалуйста, подождите ${retryAfterSeconds} секунд. Осталось запросов: ${remaining}`
-        );
+        )
 
-        return;
+        return
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(
           errorData.message || `Ошибка при загрузке файлов: ${response.status}`
-        );
+            )
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
-      setFiles(data.files);
-      setTotalPages(Math.ceil(data.total / itemsPerPage));
-      setHasMore(data.files.length === itemsPerPage);
+      setFiles(data.files)
+      setTotalPages(Math.ceil(data.total / itemsPerPage))
+      setHasMore(data.files.length === itemsPerPage)
     } catch (error) {
-      console.error("Error fetching files:", error);
+      console.error("Error fetching files:", error)
       toast.error(
         error instanceof Error
           ? error.message
           : "Не удалось загрузить файлы. Пожалуйста, обновите страницу."
-      );
+      )
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
+      isMounted.current = true
       // Получаем начальные параметры из URL
-      const page = parseInt(searchParams.get("page") || "1");
-      const sort = (searchParams.get("sort") as SortType) || "date";
+      const page = parseInt(searchParams.get("page") || "1")
+      const sort = (searchParams.get("sort") as SortType) || "date"
       const direction =
-        (searchParams.get("direction") as "asc" | "desc") || "desc";
+        (searchParams.get("direction") as "asc" | "desc") || "desc"
 
-      setCurrentPage(page);
-      setSortType(sort);
-      setSortDirection(direction);
+      setCurrentPage(page)
+      setSortType(sort)
+      setSortDirection(direction)
 
       if (initialFiles.length === 0) {
-        fetchFiles(page);
+        fetchFiles(page)
       }
     }
-  }, []);
+  }, [])
 
   // Обновляем файлы при изменении страницы или параметров сортировки
   useEffect(() => {
@@ -159,118 +159,119 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
       const isExplicitUpdate =
         searchParams.get("page") === currentPage.toString() &&
         searchParams.get("sort") === sortType &&
-        searchParams.get("direction") === sortDirection;
+        searchParams.get("direction") === sortDirection
 
       if (!isExplicitUpdate) {
-        fetchFiles(currentPage, searchQuery);
+        fetchFiles(currentPage, searchQuery)
       }
     }
-  }, [currentPage, sortType, sortDirection]);
+      }, [currentPage, sortType, sortDirection])
 
   const handleSearchChange = (value: string) => {
-    if (!isMounted.current) return;
-    setSearchQuery(value);
+    if (!isMounted.current) return
+    setSearchQuery(value)
 
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
 
     searchTimeoutRef.current = setTimeout(() => {
       if (isMounted.current) {
-        setCurrentPage(1);
-        fetchFiles(1, value);
+        setCurrentPage(1)
+        fetchFiles(1, value)
       }
-    }, 1000);
-  };
+    }, 1000)
+  }
+
 
   const handleViewChange = (value: string) => {
-    setIsViewTypeLoading(true);
-    setViewType(value as ViewType);
-    const params = new URLSearchParams(searchParams);
-    params.set("view", value);
-    router.push(`${pathname}?${params.toString()}`);
-    setIsViewTypeLoading(false);
-  };
+    setIsViewTypeLoading(true)
+    setViewType(value as ViewType)
+    const params = new URLSearchParams(searchParams)
+    params.set("view", value)
+    router.push(`${pathname}?${params.toString()}`)
+    setIsViewTypeLoading(false)
+  }
 
   const handleSortChange = async (value: string) => {
-    const [newSortType, newDirection] = value.split("-");
+    const [newSortType, newDirection] = value.split("-")
 
     // Сбрасываем состояние перед сменой сортировки
-    setFiles([]);
-    setIsLoading(true);
+    setFiles([])
+    setIsLoading(true)
 
     // Обновляем стейт
-    setSortType(newSortType as SortType);
-    setSortDirection(newDirection as "asc" | "desc");
+    setSortType(newSortType as SortType)
+    setSortDirection(newDirection as "asc" | "desc")
 
     // Всегда возвращаемся на первую страницу при смене сортировки
-    setCurrentPage(1);
+    setCurrentPage(1)
 
     // Сбрасываем кэш параметров запроса
-    lastFetchParamsRef.current = "";
+    lastFetchParamsRef.current = ""
 
     try {
       // Выполняем запрос напрямую
-      const offset = 0; // Первая страница
+      const offset = 0 // Первая страница
       const params = new URLSearchParams({
         offset: offset.toString(),
         limit: itemsPerPage.toString(),
         search: searchQuery,
         sort: newSortType,
         direction: newDirection,
-      });
+      })
 
-      const response = await fetch(`/api/files?${params}`);
+      const response = await fetch(`/api/files?${params}`)
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(
           errorData.message || `Ошибка при загрузке файлов: ${response.status}`
-        );
+        )
       }
 
-      const data = await response.json();
+      const data = await response.json()
 
       // Обновляем список файлов и данные пагинации
-      setFiles(data.files);
-      setTotalPages(Math.ceil(data.total / itemsPerPage));
-      setHasMore(data.files.length === itemsPerPage);
+      setFiles(data.files)
+      setTotalPages(Math.ceil(data.total / itemsPerPage))
+      setHasMore(data.files.length === itemsPerPage)
 
       // Убеждаемся, что пагинация отображается корректно
       if (data.total > itemsPerPage) {
         console.log(
           `Total pages calculated: ${Math.ceil(data.total / itemsPerPage)}`
-        );
+        )
       }
 
       // Обновляем URL после успешного получения данных
-      const urlParams = new URLSearchParams(searchParams);
-      urlParams.set("sort", newSortType);
-      urlParams.set("direction", newDirection);
-      urlParams.set("page", "1");
-      router.push(`${pathname}?${urlParams.toString()}`);
+      const urlParams = new URLSearchParams(searchParams)
+      urlParams.set("sort", newSortType)
+      urlParams.set("direction", newDirection)
+      urlParams.set("page", "1")
+      router.push(`${pathname}?${urlParams.toString()}`)
     } catch (error) {
-      console.error("Error fetching files with new sort:", error);
+      console.error("Error fetching files with new sort:", error)
       toast.error(
         error instanceof Error
           ? error.message
           : "Не удалось загрузить файлы. Пожалуйста, обновите страницу."
-      );
+      )
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
 
-    const params = new URLSearchParams(searchParams);
-    params.set("page", newPage.toString());
-    router.push(`${pathname}?${params.toString()}`);
+    const params = new URLSearchParams(searchParams)
+    params.set("page", newPage.toString())
+    router.push(`${pathname}?${params.toString()}`)
 
-    fetchFiles(newPage, searchQuery);
-  };
+    fetchFiles(newPage, searchQuery)
+  }
 
   const handleFileDelete = async (fileId: string) => {
     try {
@@ -282,37 +283,37 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
         body: JSON.stringify({
           isDeleted: true,
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to delete file");
+        throw new Error("Failed to delete file")
       }
 
-      setFiles((prev) => prev.filter((file) => file.id !== fileId));
-      toast.success("Файл успешно удален");
+      setFiles((prev) => prev.filter((file) => file.id !== fileId))
+      toast.success("Файл успешно удален")
     } catch (error) {
-      console.error("Error deleting file:", error);
-      toast.error("Ошибка при удалении файла");
+      console.error("Error deleting file:", error)
+      toast.error("Ошибка при удалении файла")
     }
-  };
+  }
 
   const handleFileUpload = (newFiles: File[]) => {
     // Обновляем список файлов только если были успешные загрузки
     if (newFiles && newFiles.length > 0) {
-      setFiles(newFiles);
+      setFiles(newFiles)
     }
-  };
+  }
 
   // Убедимся, что пагинация отображается, даже если totalPages = 1
   const showPagination = () => {
-    return files.length > 0;
-  };
+    return files.length > 0
+  }
 
   const handleSearchReset = () => {
-    setSearchQuery("");
-    setCurrentPage(1);
-    fetchFiles(1, "");
-  };
+    setSearchQuery("")
+    setCurrentPage(1)
+    fetchFiles(1, "")
+  }
 
   return (
     <div className="space-y-4">
@@ -461,25 +462,25 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
       <FileUploader
         isOpen={isUploading}
         onClose={() => {
-          setIsUploading(false);
+          setIsUploading(false)
         }}
         onUploadComplete={async (newFiles) => {
           if (newFiles && newFiles.length > 0) {
             try {
               // Очищаем кэш для получения новых данных
-              lastFetchParamsRef.current = "";
+              lastFetchParamsRef.current = ""
               // Сбрасываем состояние пагинации
-              setCurrentPage(1);
+              setCurrentPage(1)
               // Устанавливаем флаг наличия дополнительных файлов
-              setHasMore(true);
+              setHasMore(true)
 
               // Делаем запрос на получение файлов с сервера
-              await fetchFiles(1, searchQuery);
+              await fetchFiles(1, searchQuery)
 
               // НЕ закрываем модальное окно автоматически после успешной загрузки
               // пользователь сам закроет его при необходимости
             } catch (error) {
-              console.error("Error fetching files after upload:", error);
+              console.error("Error fetching files after upload:", error)
             }
           }
           // Не меняем состояние isUploading, чтобы модальное окно оставалось открытым
@@ -487,5 +488,5 @@ export function FileManager({ initialFiles, userId }: FileManagerProps) {
         userId={userId}
       />
     </div>
-  );
+  )
 }

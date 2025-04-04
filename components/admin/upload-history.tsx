@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import type { UploadHistory as UploadHistoryType } from "@/types/admin";
-import { formatFileSize, formatDate } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useRef } from "react"
+import type { UploadHistory as UploadHistoryType } from "@/types/admin"
+import { formatFileSize, formatDate } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -11,15 +11,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import {
   Search,
   ChevronsLeft,
@@ -27,24 +27,24 @@ import {
   ChevronRight,
   ChevronsRight,
   X,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface UploadHistoryProps {
-  initialHistory: UploadHistoryType[];
+  initialHistory: UploadHistoryType[]
 }
 
 export function UploadHistory({ initialHistory }: UploadHistoryProps) {
-  const [history, setHistory] = useState<UploadHistoryType[]>(initialHistory);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 20;
-  const lastFetchParamsRef = useRef<string>("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(false);
+  const [history, setHistory] = useState<UploadHistoryType[]>(initialHistory)
+  const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const itemsPerPage = 20
+  const lastFetchParamsRef = useRef<string>("")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMounted = useRef(false)
 
   const fetchHistory = async (
     page: number = currentPage,
@@ -52,116 +52,116 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
     status: string = statusFilter
   ) => {
     try {
-      if (isLoading) return;
+      if (isLoading) return
 
-      const offset = (page - 1) * itemsPerPage;
+      const offset = (page - 1) * itemsPerPage
       const params = new URLSearchParams({
         offset: offset.toString(),
         limit: itemsPerPage.toString(),
         search,
         status,
-      });
+      })
 
-      const paramsString = params.toString();
+      const paramsString = params.toString()
       if (paramsString === lastFetchParamsRef.current) {
-        return;
+        return
       }
 
-      setIsLoading(true);
-      lastFetchParamsRef.current = paramsString;
+      setIsLoading(true)
+      lastFetchParamsRef.current = paramsString
 
-      const response = await fetch(`/api/admin/upload-history?${params}`);
-      const data = await response.json();
+      const response = await fetch(`/api/admin/upload-history?${params}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch upload history");
+        throw new Error(data.error || "Failed to fetch upload history")
       }
 
       console.log("Upload history data:", {
         history: data.history.length,
         total: data.total,
         pages: Math.ceil((data.total || 0) / itemsPerPage),
-      });
+      })
 
-      setHistory(data.history || []);
-      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+      setHistory(data.history || [])
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
     } catch (error) {
-      console.error("Error fetching upload history:", error);
-      setHistory([]);
-      setTotalPages(1);
+      console.error("Error fetching upload history:", error)
+      setHistory([])
+      setTotalPages(1)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
+      isMounted.current = true
       // При первом рендере делаем запрос на сервер для получения актуальных данных
-      fetchHistory(1, "", "all");
-      return;
+      fetchHistory(1, "", "all")
+      return
     }
 
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
 
     if (searchQuery || statusFilter !== "all") {
       searchTimeoutRef.current = setTimeout(() => {
-        setCurrentPage(1);
-        fetchHistory(1, searchQuery, statusFilter);
-      }, 300);
+        setCurrentPage(1)
+        fetchHistory(1, searchQuery, statusFilter)
+      }, 300)
     } else {
       // Для пустого поиска и всех статусов тоже делаем запрос
-      setCurrentPage(1);
-      fetchHistory(1, "", "all");
+      setCurrentPage(1)
+      fetchHistory(1, "", "all")
     }
 
     return () => {
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        clearTimeout(searchTimeoutRef.current)
       }
-    };
-  }, [searchQuery, statusFilter]); // Убрали initialHistory, чтобы не вызывать лишние запросы
+    }
+  }, [searchQuery, statusFilter]) // Убрали initialHistory, чтобы не вызывать лишние запросы
 
   useEffect(() => {
     if (isMounted.current) {
-      fetchHistory(currentPage, searchQuery, statusFilter);
+      fetchHistory(currentPage, searchQuery, statusFilter)
     }
-  }, [currentPage]);
+  }, [currentPage])
 
   const handleSearchChange = (value: string) => {
-    if (!isMounted.current) return;
-    setSearchQuery(value);
-  };
+    if (!isMounted.current) return
+    setSearchQuery(value)
+  }
 
   const handleStatusChange = (value: string) => {
-    if (!isMounted.current) return;
-    setStatusFilter(value);
-  };
+    if (!isMounted.current) return
+    setStatusFilter(value)
+  }
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
-  };
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+  }
 
   const handleSearchReset = () => {
-    setSearchQuery("");
-    setCurrentPage(1);
-    fetchHistory(1, "", statusFilter);
-  };
+    setSearchQuery("")
+    setCurrentPage(1)
+    fetchHistory(1, "", statusFilter)
+  }
 
   // Убедимся, что пагинация отображается, даже если totalPages = 1
   const showPagination = () => {
-    return history.length > 0;
-  };
+    return history.length > 0
+  }
 
   if (isLoading && history.length === 0) {
     return (
       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         Loading...
       </div>
-    );
+    )
   }
 
   return (
@@ -295,5 +295,5 @@ export function UploadHistory({ initialHistory }: UploadHistoryProps) {
         )}
       </div>
     </div>
-  );
+  )
 }

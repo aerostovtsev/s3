@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import type { User } from "@/types/admin";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect, useRef } from "react"
+import type { User } from "@/types/admin"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -19,15 +19,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
+} from "@/components/ui/select"
+import { toast } from "sonner"
 import {
   Search,
   UserPlus,
@@ -38,11 +38,11 @@ import {
   ChevronRight,
   ChevronsRight,
   X,
-} from "lucide-react";
-import { formatDate } from "@/lib/utils";
-import { createUserSchema, type CreateUserInput } from "@/lib/validations/user";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+} from "lucide-react"
+import { formatDate } from "@/lib/utils"
+import { createUserSchema, type CreateUserInput } from "@/lib/validations/user"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 import {
   Form,
   FormControl,
@@ -50,30 +50,30 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { z } from "zod";
+} from "@/components/ui/form"
+import { z } from "zod"
 
 interface UserManagementProps {
-  initialUsers: User[];
+  initialUsers: User[]
 }
 
 export function UserManagement({ initialUsers }: UserManagementProps) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
-  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
-  const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const itemsPerPage = 20;
-  const [currentPage, setCurrentPage] = useState(1);
+  const [users, setUsers] = useState<User[]>(initialUsers)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false)
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false)
+  const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false)
+  const [userToEdit, setUserToEdit] = useState<User | null>(null)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const itemsPerPage = 20
+  const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(
     Math.ceil(initialUsers.length / itemsPerPage) || 1
-  );
-  const lastFetchParamsRef = useRef<string>("");
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMounted = useRef(false);
+  )
+  const lastFetchParamsRef = useRef<string>("")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isMounted = useRef(false)
 
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -82,7 +82,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       email: "",
       role: "USER",
     },
-  });
+  })
 
   const editForm = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
@@ -91,7 +91,7 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       email: "",
       role: "USER",
     },
-  });
+  })
 
   useEffect(() => {
     if (userToEdit) {
@@ -99,104 +99,104 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         name: userToEdit.name,
         email: userToEdit.email,
         role: userToEdit.role as "ADMIN" | "USER",
-      });
+      })
     }
-  }, [userToEdit, editForm]);
+  }, [userToEdit, editForm])
 
   const fetchUsers = async (
     page: number = currentPage,
     search: string = searchQuery
   ) => {
     try {
-      if (isLoading) return;
+      if (isLoading) return
 
-      const offset = (page - 1) * itemsPerPage;
+      const offset = (page - 1) * itemsPerPage
       const params = new URLSearchParams({
         offset: offset.toString(),
         limit: itemsPerPage.toString(),
         search,
-      });
+      })
 
-      const paramsString = params.toString();
+      const paramsString = params.toString()
       if (paramsString === lastFetchParamsRef.current) {
-        return;
+        return
       }
 
-      setIsLoading(true);
-      lastFetchParamsRef.current = paramsString;
+      setIsLoading(true)
+      lastFetchParamsRef.current = paramsString
 
-      const response = await fetch(`/api/admin/users?${params}`);
-      const data = await response.json();
+      const response = await fetch(`/api/admin/users?${params}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch users");
+        throw new Error(data.error || "Failed to fetch users")
       }
 
       console.log("Users data:", {
         users: data.users.length,
         total: data.total,
         pages: Math.ceil((data.total || 0) / itemsPerPage),
-      });
+      })
 
-      setUsers(data.users || []);
-      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
+      setUsers(data.users || [])
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage))
     } catch (error) {
-      console.error("Error fetching users:", error);
-      setUsers([]);
-      setTotalPages(1);
+      console.error("Error fetching users:", error)
+      setUsers([])
+      setTotalPages(1)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
+      isMounted.current = true
       // При первом рендере делаем запрос на сервер для получения актуальных данных
-      fetchUsers(1, "");
-      return;
+      fetchUsers(1, "")
+      return
     }
 
     if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+      clearTimeout(searchTimeoutRef.current)
     }
 
     if (searchQuery) {
       searchTimeoutRef.current = setTimeout(() => {
-        setCurrentPage(1);
-        fetchUsers(1, searchQuery);
-      }, 300);
+        setCurrentPage(1)
+        fetchUsers(1, searchQuery)
+      }, 300)
     } else {
       // Для пустого поиска тоже делаем запрос
-      setCurrentPage(1);
-      fetchUsers(1, "");
+      setCurrentPage(1)
+      fetchUsers(1, "")
     }
 
     return () => {
       if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        clearTimeout(searchTimeoutRef.current)
       }
-    };
-  }, [searchQuery]); // Убрали initialUsers, чтобы не вызывать лишние запросы
+    }
+  }, [searchQuery]) // Убрали initialUsers, чтобы не вызывать лишние запросы
 
   useEffect(() => {
     if (currentPage > 1 || searchQuery) {
-      fetchUsers(currentPage, searchQuery);
+      fetchUsers(currentPage, searchQuery)
     }
-  }, [currentPage]);
+  }, [currentPage])
 
   const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-  };
+    setSearchQuery(value)
+  }
 
   const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
-  };
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+  }
 
   const showPagination = () => {
-    return users.length > 0;
-  };
+    return users.length > 0
+  }
 
   const handleAddUser = async (data: z.infer<typeof createUserSchema>) => {
     try {
@@ -206,35 +206,35 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      });
+      })
 
-      const responseData = await response.json();
+      const responseData = await response.json()
 
       if (!response.ok) {
         form.setError("email", {
           type: "manual",
           message: responseData.error || "Не удалось создать пользователя",
-        });
-        toast.error("Не удалось создать пользователя");
-        return;
+        })
+        toast.error("Не удалось создать пользователя")
+        return
       }
 
-      setUsers((prev) => [...prev, responseData]);
-      form.reset();
-      setIsAddUserDialogOpen(false);
-      toast.success("Пользователь создан");
+      setUsers((prev) => [...prev, responseData])
+      form.reset()
+      setIsAddUserDialogOpen(false)
+      toast.success("Пользователь создан")
     } catch (error) {
-      console.error("[USER_CREATE]", error);
+      console.error("[USER_CREATE]", error)
       form.setError("email", {
         type: "manual",
         message: "Произошла ошибка при создании пользователя",
-      });
-      toast.error("Произошла ошибка при создании пользователя");
+      })
+      toast.error("Произошла ошибка при создании пользователя")
     }
-  };
+  }
 
   const handleEditUser = async (data: CreateUserInput) => {
-    if (!userToEdit) return;
+    if (!userToEdit) return
 
     try {
       const response = await fetch(`/api/admin/users/${userToEdit.id}`, {
@@ -243,57 +243,57 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      });
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update user");
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update user")
       }
 
-      const updatedUser = (await response.json()) as User;
+      const updatedUser = (await response.json()) as User
 
       setUsers(
         users.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      );
+      )
 
-      setIsEditUserDialogOpen(false);
-      setUserToEdit(null);
+      setIsEditUserDialogOpen(false)
+      setUserToEdit(null)
 
-      toast.success("Пользователь обновлен");
+      toast.success("Пользователь обновлен")
     } catch (error: unknown) {
-      console.error("Error updating user:", error);
-      toast.error("Не удалось обновить пользователя");
+      console.error("Error updating user:", error)
+      toast.error("Не удалось обновить пользователя")
     }
-  };
+  }
 
   const handleDeleteUser = async () => {
     if (!userToDelete?.id) {
-      toast.error("Не выбран пользователь для удаления");
-      return;
+      toast.error("Не выбран пользователь для удаления")
+      return
     }
 
     try {
       const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: "DELETE",
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete user");
+        const data = await response.json()
+        throw new Error(data.error || "Failed to delete user")
       }
 
-      setUsers(users.filter((user) => user.id !== userToDelete.id));
-      setUserToDelete(null);
-      setIsDeleteUserDialogOpen(false);
+      setUsers(users.filter((user) => user.id !== userToDelete.id))
+      setUserToDelete(null)
+      setIsDeleteUserDialogOpen(false)
 
-      toast.success("Пользователь успешно удален");
+      toast.success("Пользователь успешно удален")
     } catch (error: unknown) {
-      console.error("Error deleting user:", error);
+      console.error("Error deleting user:", error)
       toast.error(
         "Не удалось удалить пользователя, попробуйте повторить позже"
-      );
+      )
     }
-  };
+  }
 
   const handleRoleChange = async (userId: string, role: string) => {
     try {
@@ -303,11 +303,11 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ role }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to update user role");
+        const data = await response.json()
+        throw new Error(data.error || "Failed to update user role")
       }
 
       setUsers(
@@ -316,27 +316,27 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
             ? { ...user, role: role as "ADMIN" | "USER" }
             : user
         )
-      );
+      )
 
-      toast.success("Роль пользователя успешно обновлена");
+      toast.success("Роль пользователя успешно обновлена")
     } catch (error: unknown) {
-      console.error("Error updating user role:", error);
-      toast.error("Не удалось обновить роль пользователя");
+      console.error("Error updating user role:", error)
+      toast.error("Не удалось обновить роль пользователя")
     }
-  };
+  }
 
   const handleSearchReset = () => {
-    setSearchQuery("");
-    setCurrentPage(1);
-    fetchUsers(1, "");
-  };
+    setSearchQuery("")
+    setCurrentPage(1)
+    fetchUsers(1, "")
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
         Loading...
       </div>
-    );
+    )
   }
 
   return (
@@ -416,8 +416,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setUserToEdit(user);
-                              setIsEditUserDialogOpen(true);
+                              setUserToEdit(user)
+                              setIsEditUserDialogOpen(true)
                             }}
                           >
                             <Edit className="h-4 w-4" />
@@ -426,8 +426,8 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              setUserToDelete(user);
-                              setIsDeleteUserDialogOpen(true);
+                              setUserToDelete(user)
+                              setIsDeleteUserDialogOpen(true)
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -496,9 +496,9 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
       <Dialog
         open={isAddUserDialogOpen}
         onOpenChange={(open) => {
-          setIsAddUserDialogOpen(open);
+          setIsAddUserDialogOpen(open)
           if (!open) {
-            form.reset();
+            form.reset()
           }
         }}
       >
@@ -701,5 +701,5 @@ export function UserManagement({ initialUsers }: UserManagementProps) {
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

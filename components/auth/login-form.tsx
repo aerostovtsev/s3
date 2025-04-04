@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import type React from "react";
+import type React from "react"
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react"
+import { signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Card,
   CardContent,
@@ -15,108 +15,108 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/components/ui/card"
+import { AlertCircle, Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { toast } from "sonner";
+} from "@/components/ui/input-otp"
+import { toast } from "sonner"
 
 export function LoginForm() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [code, setCode] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [step, setStep] = useState<"email" | "code">("email")
 
   const isAllowedDomain = (email: string): boolean => {
-    const allowedDomains = ["1cbit.ru", "abt.ru"];
-    const domain = email.split("@")[1]?.toLowerCase();
-    return allowedDomains.includes(domain);
-  };
+    const allowedDomains = ["1cbit.ru", "abt.ru"]
+    const domain = email.split("@")[1]?.toLowerCase()
+    return allowedDomains.includes(domain)
+  }
 
   const handleRequestCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+    e.preventDefault()
+    setLoading(true)
+    setError("")
 
     if (!isAllowedDomain(email)) {
-      setError("Доступ разрешен только для корпоративных email-адресов");
-      setLoading(false);
-      return;
+      setError("Доступ разрешен только для корпоративных email-адресов")
+      setLoading(false)
+      return
     }
 
-    setStep("code");
+    setStep("code")
 
     try {
       const response = await fetch("/api/auth/send-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (response.status === 429) {
-        const retryAfter = data.reset || "60";
+        const retryAfter = data.reset || "60"
         toast.error(
           `Слишком много попыток. Пожалуйста, подождите ${retryAfter} секунд`
-        );
-        setStep("email");
-        setLoading(false);
-        return;
+        )
+        setStep("email")
+        setLoading(false)
+        return
       }
 
       if (!response.ok) {
-        setError(data.error || "Не удалось отправить код");
-        toast.error(data.error || "Не удалось отправить код");
-        setStep("email");
-        setLoading(false);
-        return;
+        setError(data.error || "Не удалось отправить код")
+        toast.error(data.error || "Не удалось отправить код")
+        setStep("email")
+        setLoading(false)
+        return
       }
 
-      toast.success("Код подтверждения отправлен на ваш email");
+      toast.success("Код подтверждения отправлен на ваш email")
     } catch (error) {
-      setError("Произошла ошибка при отправке кода");
-      setStep("email");
+      setError("Произошла ошибка при отправке кода")
+      setStep("email")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSubmitCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+    e.preventDefault()
+    setLoading(true)
+    setError("")
 
     try {
       const result = await signIn("credentials", {
         email,
         code,
         redirect: false,
-      });
+      })
 
       if (result?.error) {
-        setError("Неверный код подтверждения. Пожалуйста, попробуйте снова.");
-        setLoading(false);
-        return;
+        setError("Неверный код подтверждения. Пожалуйста, попробуйте снова.")
+        setLoading(false)
+        return
       }
 
-      toast.success("Успешный вход в систему");
-      router.push("/dashboard");
-      router.refresh();
+      toast.success("Успешный вход в систему")
+      router.push("/dashboard")
+      router.refresh()
     } catch (error) {
       setError(
         "Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова."
-      );
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Card>
@@ -196,5 +196,5 @@ export function LoginForm() {
         </p>
       </CardFooter>
     </Card>
-  );
+  )
 }

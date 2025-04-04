@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import type { User } from "next-auth";
-import { signOut } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import type { User } from "next-auth"
+import { signOut } from "next-auth/react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,29 +12,29 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogOut, Database, Sun, Moon, Monitor, Shield } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useTheme } from "@/components/theme-provider";
+} from "@/components/ui/dropdown-menu"
+import { LogOut, Database, Sun, Moon, Monitor, Shield } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useTheme } from "@/components/theme-provider"
 
 interface DashboardHeaderProps {
   user: User & {
-    role: string;
-  };
+    role: string
+  }
 }
 
 const ThemeSwitcher = ({
   theme,
   setTheme,
 }: {
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: string
+  setTheme: (theme: string) => void
 }) => {
   const themes = [
     { value: "light", icon: Sun },
     { value: "dark", icon: Moon },
     { value: "system", icon: Monitor },
-  ];
+  ]
 
   return (
     <div className="flex justify-start gap-1 px-2 py-1.5">
@@ -44,8 +44,8 @@ const ThemeSwitcher = ({
           variant="ghost"
           size="sm"
           onClick={(e) => {
-            e.preventDefault();
-            setTheme(value);
+            e.preventDefault()
+            setTheme(value)
           }}
           className={`h-8 w-8 p-0 ${
             theme === value ? "bg-accent text-accent-foreground" : ""
@@ -55,25 +55,25 @@ const ThemeSwitcher = ({
         </Button>
       ))}
     </div>
-  );
-};
+  )
+}
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const isAdmin = user.role === "ADMIN";
-  const { theme = "system", setTheme } = useTheme();
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const isAdmin = user.role === "ADMIN"
+  const { theme = "system", setTheme } = useTheme()
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
-    router.push("/login");
-  };
+    await signOut({ redirect: false })
+    router.push("/login")
+  }
 
   const handleNavigation = (path: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams(searchParams);
-    router.push(`${path}${params.toString() ? `?${params.toString()}` : ""}`);
-  };
+    e.preventDefault()
+    const params = new URLSearchParams(searchParams)
+    router.push(`${path}${params.toString() ? `?${params.toString()}` : ""}`)
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -145,5 +145,5 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

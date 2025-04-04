@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import type { File } from "@/types/file";
-import { formatFileSize, formatDate, cn } from "@/lib/utils";
-import { getFileTypeIcon } from "@/lib/file-icons";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import type { File } from "@/types/file"
+import { formatFileSize, formatDate, cn } from "@/lib/utils"
+import { getFileTypeIcon } from "@/lib/file-icons"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu"
 import {
   Dialog,
   DialogContent,
@@ -19,15 +19,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Download, MoreVertical, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { Download, MoreVertical, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface FileCardProps {
-  file?: File;
-  onDelete?: (fileId: string) => void;
-  isLoading?: boolean;
-  className?: string;
+  file?: File
+  onDelete?: (fileId: string) => void
+  isLoading?: boolean
+  className?: string
 }
 
 export function FileCard({
@@ -36,30 +36,30 @@ export function FileCard({
   isLoading,
   className,
 }: FileCardProps) {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const handleDownload = async (fileId: string) => {
     try {
-      console.log("Starting download for file:", fileId);
-      const response = await fetch(`/api/files/download/${fileId}`);
-      const data = await response.json();
+      console.log("Starting download for file:", fileId)
+      const response = await fetch(`/api/files/download/${fileId}`)
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to get download link");
+        throw new Error(data.error || "Failed to get download link")
       }
-      console.log("Received download URL:", data.url);
-      window.open(data.url, "_blank");
+      console.log("Received download URL:", data.url)
+      window.open(data.url, "_blank")
     } catch (error) {
-      console.error("Error downloading file:", error);
-      toast.error("Не удалось скачать файл");
+      console.error("Error downloading file:", error)
+      toast.error("Не удалось скачать файл")
     }
-  };
+  }
 
   const confirmDelete = () => {
-    if (!file || !onDelete) return;
-    onDelete(file.id);
-    setShowDeleteDialog(false);
-  };
+    if (!file || !onDelete) return
+    onDelete(file.id)
+    setShowDeleteDialog(false)
+  }
 
   if (!file)
     return (
@@ -70,9 +70,9 @@ export function FileCard({
           </div>
         </CardContent>
       </Card>
-    );
+    )
 
-  const FileIcon = getFileTypeIcon(file.type);
+  const FileIcon = getFileTypeIcon(file.type)
 
   return (
     <>
@@ -139,5 +139,5 @@ export function FileCard({
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
